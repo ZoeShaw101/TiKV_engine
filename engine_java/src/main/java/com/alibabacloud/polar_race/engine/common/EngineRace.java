@@ -1,17 +1,22 @@
 package com.alibabacloud.polar_race.engine.common;
 
 import com.alibabacloud.polar_race.engine.common.AbstractEngine;
+import com.alibabacloud.polar_race.engine.common.bitcask.BitCask;
 import com.alibabacloud.polar_race.engine.common.exceptions.EngineException;
 import com.alibabacloud.polar_race.engine.common.exceptions.RetCodeEnum;
 
 public class EngineRace extends AbstractEngine {
 
+	private BitCask bitCask;
+
 	@Override
 	public void open(String path) throws EngineException {
+		bitCask = new BitCask(path);
 	}
 	
 	@Override
 	public void write(byte[] key, byte[] value) throws EngineException {
+
 	}
 	
 	@Override
@@ -27,6 +32,7 @@ public class EngineRace extends AbstractEngine {
 	
 	@Override
 	public void close() {
+		bitCask.close();
 	}
 
 }
