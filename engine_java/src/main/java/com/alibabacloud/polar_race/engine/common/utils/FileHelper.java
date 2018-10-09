@@ -13,8 +13,8 @@ public class FileHelper {
 
     private static Logger logger = Logger.getLogger(FileHelper.class);
 
-    public static boolean fileExists(String fileName) {
-        File file = new File(fileName);
+    public static boolean fileExists(String filePath) {
+        File file = new File(filePath);
         if (file.exists()) {
             return true;
         } else {

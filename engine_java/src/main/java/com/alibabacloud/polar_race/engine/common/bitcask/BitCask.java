@@ -10,7 +10,8 @@ import java.io.*;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 /**
@@ -33,6 +34,8 @@ public class BitCask<T> {
     private long activeFileId;  //活跃文件
     private long activeFileOffset;  //记录活跃文件的当前写入位置
     private Map<String, BitCaskIndex> _indexer;  //索引哈希表
+
+    private ReadWriteLock rwLock = new ReentrantReadWriteLock();  //读写锁
 
 
     public BitCask(String dbName) throws EngineException{
@@ -61,8 +64,8 @@ public class BitCask<T> {
             } catch (Exception e) {
                 logger.error(e);
             }
-        }
-        loadIndex(hintFilePath);
+        } else
+            loadIndex(hintFilePath);
         if (!FileHelper.fileExists(dbName + DATA_DIR)) {
             FileHelper.createDir(dbName + DATA_DIR);
         } else {
@@ -72,19 +75,17 @@ public class BitCask<T> {
     }
 
     /**
-     * 读索引文件byte，将索引加载到内存
+     * 将索引加载到内存
      * @param filePath
      */
     private void loadIndex(String filePath) throws EngineException {
         File file = new File(filePath);
-        InputStreamReader reader = null;
         BufferedReader br = null;
         try {
-            reader = new InputStreamReader(new FileInputStream(file));
-            br = new BufferedReader(reader);
+            br = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
             String line;
             try {
-                while ((line = br.readLine()) != null) {
+                while ( (line = br.readLine()) != null) {
                     BitCaskIndex index = (BitCaskIndex) (Serialization.deserializeFromStr(line));
                     _indexer.put(index.getKey(), index);
                 }
@@ -97,9 +98,8 @@ public class BitCask<T> {
             if (br != null) {
                 try {
                     br.close();
-                    reader.close();
                 } catch (IOException e) {
-                    throw new EngineException(RetCodeEnum.IO_ERROR, "初始化关闭文件出错!");
+                    logger.error("关闭文件出错!");
                 }
             }
         }
@@ -176,18 +176,20 @@ public class BitCask<T> {
         } catch (FileNotFoundException e) {
             throw new EngineException(RetCodeEnum.NOT_FOUND, "物理数据文件不存在!");
         }
+        rwLock.readLock().lock();
         try {
             file.seek(index.getValueOffset());
             file.read(bytes);
-            logger.info("从数据文件" + activeFileId + "读出长度为bytes.length=" + bytes.length + "的数据");
+            logger.info("从数据文件" + activeFileId + "读出长度为value=" + new String(bytes) + "的数据");
         } catch (IOException e) {
             bytes = null;
             throw new EngineException(RetCodeEnum.IO_ERROR, "读取物理数据文件出错!");
         } finally {
             try {
                 file.close();
+                rwLock.readLock().unlock();
             } catch (IOException e) {
-                throw new EngineException(RetCodeEnum.IO_ERROR, "关闭文件出错!");
+                logger.error("关闭文件出错!");
             }
         }
         return (T) bytes;
@@ -201,6 +203,13 @@ public class BitCask<T> {
     private void writeToFile(String key, byte[] bytes, String dir) throws EngineException {
         RandomAccessFile file = null;
         String filePath = dir + "/" + String.valueOf(activeFileId) + ".data";
+        if (!FileHelper.fileExists(filePath)) {
+            try {
+                FileHelper.createFile(filePath);
+            } catch (Exception e) {
+                throw new EngineException(RetCodeEnum.NOT_SUPPORTED, "创建新物理数据文件失败!");
+            }
+        }
         try {
             file = new RandomAccessFile(filePath, "rw");
         } catch (FileNotFoundException e) {
@@ -210,6 +219,7 @@ public class BitCask<T> {
         long curFileLen;
         try {
             curFileLen = file.length();
+            logger.info("当前活跃文件长度：" + curFileLen);
         } catch (IOException e) {
             throw new EngineException(RetCodeEnum.IO_ERROR, "读物理数据文件长度出错!");
         }
@@ -222,19 +232,21 @@ public class BitCask<T> {
             activeFileId += 1;
             writeToFile(key, bytes, dir);
         } else {
+            rwLock.writeLock().lock();
             try {
                 long offset = file.length();
                 file.seek(offset);
                 file.write(bytes);
                 this.activeFileOffset = offset;
-                logger.info("向数据文件" +  activeFileId + "写入长度为bytes.length=" + bytes.length + "的数据");
+                logger.info("向数据文件" +  activeFileId + "写入key=" + key +", value=" + new String(bytes) + "的数据");
             } catch (IOException e) {
                 throw new EngineException(RetCodeEnum.IO_ERROR, "写物理数据文件出错!");
             } finally {
                 try {
                     file.close();
+                    rwLock.writeLock().unlock();
                 } catch (IOException e) {
-                    throw new EngineException(RetCodeEnum.IO_ERROR, "关闭文件出错!");
+                    logger.error("关闭文件出错!");
                 }
             }
         }
@@ -248,6 +260,7 @@ public class BitCask<T> {
         String filePath = dbName + INDEX_DIR + "/" + HINT_FILE_NAME;
         BufferedWriter bw = null;
         File file = new File(filePath);
+        rwLock.writeLock().lock();
         try {
             bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, true)));
             String data = Serialization.serializeToStr(index) + "\n";
@@ -258,8 +271,9 @@ public class BitCask<T> {
             if (bw != null) {
                 try {
                     bw.close();
+                    rwLock.writeLock().unlock();
                 } catch (IOException e) {
-                    throw new EngineException(RetCodeEnum.IO_ERROR, "关闭文件出错!");
+                    logger.error("关闭文件出错!");
                 }
             }
         }
