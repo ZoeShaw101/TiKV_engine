@@ -22,6 +22,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * 核心思想就是维护索引文件和数据文件
  *
  * todo: 对文件行加锁，而不是对整个文件加锁
+ * todo: 并发读写不能正常关闭系统
  */
 
 public class BitCask<T> {
@@ -42,18 +43,17 @@ public class BitCask<T> {
     private long activeFileOffset;  //记录活跃文件的当前写入位置
     private Map<String, BitCaskIndex> _indexer;  //索引哈希表
 
-    private Map<Long, List<RedoLog>> redoLogMap;  //重做日志表，用于意外掉电时恢复
+    private Map<String, List<RedoLog>> redoLogMap;  //重做日志表，用于意外掉电时恢复
 
     private ReadWriteLock rwLock = new ReentrantReadWriteLock();  //读写锁
-    private Timer timer;
-    private static final AtomicLong transactionId = new AtomicLong(0);  //事务id
 
+    //private Timer timer;  //它其实是一个线程
 
     public BitCask(String dbName) throws EngineException {
         this.dbName = dbName;
         this._indexer = new ConcurrentHashMap<>();
         this.redoLogMap = new ConcurrentHashMap<>();
-        timer = new Timer();
+        //timer = new Timer();
         Init();
     }
 
@@ -111,30 +111,31 @@ public class BitCask<T> {
         for (Object index : indexes) {
             if (index == null) continue;
             _indexer.put(((BitCaskIndex)index).getKey(), (BitCaskIndex)index);
+            logger.debug("加载索引：index=" + index.toString());
         }
     }
 
     /**
      * 系统意外停止恢复数据
-     * 将同一个transactionId的操作，存入一个map中
+     * 将同一个transactionId的操作，存入一个map中,且对于同一个key的操作，只找它最近的那个最新值
      */
     private void checkRedoLog(String filePath) throws EngineException {
         File file = new File(filePath);
         if (file.length() == 0) return;
+        logger.info("执行重做日志恢复机制");
         List<Object> logs = readObjectFromFile(filePath);
         for (Object log : logs) {
-            long Id = ((RedoLog) log).getTransactionId();
-            if (!redoLogMap.containsKey(Id)) {
-                redoLogMap.put(Id, new ArrayList<>());
+            String key = ((RedoLog) log).getKey();
+            if (!redoLogMap.containsKey(key)) {
+                redoLogMap.put(key, new ArrayList<>());
             }
-            redoLogMap.get(Id).add((RedoLog) log);
+            redoLogMap.get(key).add((RedoLog) log);
         }
-        for (long Id : redoLogMap.keySet()) {
-            Collections.sort(redoLogMap.get(Id), (a, b) -> (int) (b.getTimestamp() - a.getTimestamp()));
+        for (String key : redoLogMap.keySet()) {
+            Collections.sort(redoLogMap.get(key), (a, b) -> (int) (b.getTimestamp() - a.getTimestamp()));
         }
-        for (long Id : redoLogMap.keySet()) {
-            boolean isCommit = false;
-            RedoLog lastLog = redoLogMap.get(Id).get(0);
+        for (String key : redoLogMap.keySet()) {
+            RedoLog lastLog = redoLogMap.get(key).get(0);
             put(lastLog.getKey(), (T) lastLog.getNewValue());
         }
     }
@@ -162,6 +163,7 @@ public class BitCask<T> {
 
     private void clearAllRedoLog(String logPath) {
         File file = new File(logPath);
+        if (!FileHelper.fileExists(logPath)) return;
         try {
             if (! file.delete())
                 logger.error("删除redoLog文件失败！");
@@ -177,7 +179,6 @@ public class BitCask<T> {
     }
 
     /**
-     * todo: put操作写log文件写了几次啊，之后得优化
      */
     public int put(String key, T value) throws EngineException {
         byte[] bytes = null;
@@ -191,14 +192,13 @@ public class BitCask<T> {
             throw new EngineException(RetCodeEnum.IO_ERROR, "序列化出错!");
         }
         RedoLog<byte[]> curLog = new RedoLog<>();
-        curLog.setTransactionId(transactionId.getAndIncrement());
         curLog.setBegin(true);
         curLog.setKey(key);
-        curLog.setOldValue((byte[]) get(key));
         curLog.setNewValue((byte[]) value);
         curLog.setTimestamp(new Date().getTime());
         writeToRedoLog(curLog);
 
+        checkActiveFile(dbName + DATA_DIR);
         updateIndex(key, bytes, curLog);
         writeBytesToFile(key, bytes, dbName + DATA_DIR);
 
@@ -235,7 +235,7 @@ public class BitCask<T> {
         try {
             file.seek(index.getValueOffset());
             file.read(bytes);
-            logger.info("从数据文件" + activeFileId + "读出长度为value=" + new String(bytes) + "的数据");
+            logger.info("从数据文件" + activeFileId + "读出为value=" + new String(bytes) + "的数据");
         } catch (IOException e) {
             bytes = null;
             throw new EngineException(RetCodeEnum.IO_ERROR, "读取物理数据文件出错!");
@@ -260,59 +260,50 @@ public class BitCask<T> {
         }
     }
 
+    private void checkActiveFile(String dir) throws EngineException {
+        String filePath = dir + "/" + String.valueOf(activeFileId) + ".data";
+        File file = new File(filePath);
+        if (file.length() >= DEFAULT_ACTIVE_FILE_SIZE) {
+            logger.info("活跃文件大小超过限制，创建新的活跃文件");
+            activeFileId += 1;
+            String newFilePath = dir + "/" + String.valueOf(activeFileId) + ".data";
+            if (!FileHelper.fileExists(filePath)) {
+                try {
+                    FileHelper.createFile(newFilePath);
+                } catch (Exception e) {
+                    throw new EngineException(RetCodeEnum.NOT_SUPPORTED, "创建新物理数据文件失败!");
+                }
+            }
+        }
+    }
+
     /**
      * 将数据写入物理文件
      */
     private void writeBytesToFile(String key, byte[] bytes, String dir) throws EngineException {
         RandomAccessFile file = null;
         String filePath = dir + "/" + String.valueOf(activeFileId) + ".data";
-        if (!FileHelper.fileExists(filePath)) {
-            try {
-                FileHelper.createFile(filePath);
-            } catch (Exception e) {
-                throw new EngineException(RetCodeEnum.NOT_SUPPORTED, "创建新物理数据文件失败!");
-            }
-        }
         try {
             file = new RandomAccessFile(filePath, "rw");
-        } catch (FileNotFoundException e) {
-            throw new EngineException(RetCodeEnum.NOT_FOUND, "物理数据文件不存在!");
-        }
-        //如果当前活跃文件大小超过限制，则创建新的活跃文件；现在的活跃文件变为old
-        long curFileLen;
-        try {
-            curFileLen = file.length();
-            logger.info("当前活跃文件长度：" + curFileLen);
-        } catch (IOException e) {
-            throw new EngineException(RetCodeEnum.IO_ERROR, "读物理数据文件长度出错!");
-        }
-        if (curFileLen >= DEFAULT_ACTIVE_FILE_SIZE) {
-            try {
-                file.close();
-            } catch (IOException e) {
-                throw new EngineException(RetCodeEnum.IO_ERROR, "关闭物理文件出错!");
-            }
-            activeFileId += 1;
-            writeBytesToFile(key, bytes, dir);
-        } else {
             rwLock.writeLock().lock();
+            long offset = file.length();
+            file.seek(offset);
+            file.write(bytes);
+            this.activeFileOffset = offset;
+            logger.info("向数据文件" +  activeFileId + "写入key=" + key +", value=" + new String(bytes) + "的数据");
+        } catch (IOException e) {
+            throw new EngineException(RetCodeEnum.IO_ERROR, "写物理数据文件出错!");
+        } finally {
             try {
-                long offset = file.length();
-                file.seek(offset);
-                file.write(bytes);
-                this.activeFileOffset = offset;
-                logger.info("向数据文件" +  activeFileId + "写入key=" + key +", value=" + new String(bytes) + "的数据");
-            } catch (IOException e) {
-                throw new EngineException(RetCodeEnum.IO_ERROR, "写物理数据文件出错!");
-            } finally {
-                try {
+                if (file != null) {
                     file.close();
                     rwLock.writeLock().unlock();
-                } catch (IOException e) {
-                    logger.error("关闭文件出错!");
                 }
+            } catch (IOException e) {
+                logger.error("关闭文件出错!");
             }
         }
+
     }
 
     private void updateIndex(String key, byte[] bytes, RedoLog curLog) throws EngineException {
@@ -321,6 +312,7 @@ public class BitCask<T> {
         this._indexer.put(key, index);
         String filePath = dbName + INDEX_DIR + HINT_FILE_NAME;
         writeObjectToFile(index, filePath);
+        logger.info("写入索引文件：index=" + index.toString());
     }
 
     private List<Object> readObjectFromFile(String filePath) {
@@ -339,7 +331,6 @@ public class BitCask<T> {
                     break;
                 }
             }
-            logger.info("从文件读出对象流List.size()=" + objects.size());
         } catch (Exception e) {
             logger.error("读取对象输出流出错", e);
         } finally {
@@ -362,7 +353,6 @@ public class BitCask<T> {
             oos = NewObjectOutputStream.newInstance(filePath);
             oos.writeObject(obj);
             oos.flush();
-            logger.info("向文件写入对象流");
         } catch (Exception e) {
             logger.error("将对象序列化进文件出错", e);
         } finally {

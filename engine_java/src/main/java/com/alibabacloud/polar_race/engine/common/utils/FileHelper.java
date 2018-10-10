@@ -68,4 +68,8 @@ public class FileHelper {
         }
         return pathFiles;
     }
+
+    public static void main(String[] args) {
+        System.out.println("----");
+    }
 }

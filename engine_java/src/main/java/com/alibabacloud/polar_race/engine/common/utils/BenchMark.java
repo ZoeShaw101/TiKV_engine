@@ -4,6 +4,7 @@ import com.alibabacloud.polar_race.engine.common.EngineRace;
 import org.apache.log4j.Logger;
 
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -22,23 +23,26 @@ public class BenchMark {
     private final static int KEY_NUM = 10;
 
     private static ExecutorService pool = Executors.newCachedThreadPool();
+    private static CountDownLatch countDownLatch = new CountDownLatch(THREAD_NUM);
 
     private static Random random = new Random();
 
-    public static void SimpleTest() throws Exception {
+    public static void SimpleTest() {
         EngineRace engineRace = new EngineRace();
         try {
             engineRace.open(DB_PATH);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        byte[] key = String.valueOf(973).getBytes();  //198 197 66
-        byte[] v = "attacking algo go go go!".getBytes();
-        try {
-            engineRace.write(key, v);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        byte[] key = String.valueOf(114).getBytes();  //114 405 169
+        byte[] v = "today is a good day!".getBytes();
+
+//        try {
+//            engineRace.write(key, v);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+
         try {
             byte[] value = engineRace.read(key);
             logger.info("key=" + new String(key) + " , value=" + new String(value));
@@ -48,7 +52,7 @@ public class BenchMark {
         engineRace.close();
     }
 
-    public static void ConcurrentTest1() {
+    public static void ConcurrentTest1() throws InterruptedException {
         final EngineRace engineRace = new EngineRace();
         try {
             engineRace.open(DB_PATH);
@@ -62,6 +66,8 @@ public class BenchMark {
                             logger.info("线程" + Thread.currentThread().getName() + "执行写操作");
                         } catch (Exception e) {
                             logger.error(e);
+                        } finally {
+                            countDownLatch.countDown();
                         }
                     }
                 });
@@ -71,6 +77,8 @@ public class BenchMark {
         } finally {
             pool.shutdown();
         }
+        countDownLatch.await();  //阻塞主线程直到所有线程都执行完毕，关闭系统
+        engineRace.close();
     }
 
     public static void ConcurrentTest2() {
@@ -78,15 +86,16 @@ public class BenchMark {
     }
 
     public static void RecoveryTest() throws Exception {
-        SimpleTest();
+
     }
 
     public static void SysBenchMark() {
 
     }
 
-    public static void main(String[] args) throws Exception{
+    public static void main(String[] args) throws Exception {
         //SimpleTest();
+
         //ConcurrentTest1();
 
         RecoveryTest();

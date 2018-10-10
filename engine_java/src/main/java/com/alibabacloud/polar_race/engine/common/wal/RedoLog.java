@@ -12,13 +12,12 @@ import java.io.Serializable;
  * 如果是突然系统意外停止，则会产生redoLog，那么下次打开数据库时，如果有redoLog，则需要将redoLog中的操作Commit或者Rollback
  *
  * 一个完整的事务流程，只要记录写没写磁盘成功：
- * 1.Id {key, oldValue, newValue, commitStart} 开始写磁盘
- * 2.Id {key, oldValue, newValue, commitEnd} 成功写磁盘，事务成功
+ * 1. {key, oldValue, newValue, commitStart} 开始写磁盘
+ * 2. {key, oldValue, newValue, commitEnd} 成功写磁盘，事务成功
  */
 
 public class RedoLog<T> implements Serializable {
     private boolean isBegin;
-    private long TransactionId;
     private String key;
     private T oldValue;
     private T newValue;
@@ -27,30 +26,11 @@ public class RedoLog<T> implements Serializable {
 
     public RedoLog() {
         this.isBegin = false;
-        this.TransactionId = -1;
         this.key = null;
         this.oldValue = null;
         this.newValue = null;
         this.isCommit = false;
         this.timestamp = -1;
-    }
-
-    public RedoLog(boolean isBegin, long transactionId, String key, T oldValue, T newValue, boolean isCommit, long timestamp) {
-        this.isBegin = isBegin;
-        TransactionId = transactionId;
-        this.key = key;
-        this.oldValue = oldValue;
-        this.newValue = newValue;
-        this.isCommit = isCommit;
-        this.timestamp = timestamp;
-    }
-
-    public long getTransactionId() {
-        return TransactionId;
-    }
-
-    public void setTransactionId(long transactionId) {
-        TransactionId = transactionId;
     }
 
     public String getKey() {
@@ -105,7 +85,6 @@ public class RedoLog<T> implements Serializable {
     public String toString() {
         return "RedoLog{" +
                 "isBegin=" + isBegin +
-                ", TransactionId=" + TransactionId +
                 ", key='" + key + '\'' +
                 ", oldValue=" + oldValue +
                 ", newValue=" + newValue +
