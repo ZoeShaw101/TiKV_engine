@@ -7,7 +7,6 @@ import com.alibabacloud.polar_race.engine.common.exceptions.RetCodeEnum;
 import com.alibabacloud.polar_race.engine.common.utils.Serialization;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 
 public class EngineRace extends AbstractEngine {
 
@@ -38,6 +37,7 @@ public class EngineRace extends AbstractEngine {
 		try {
 			if (bitCask != null) {
 				value = bitCask.get(strKey);
+				if (value == null) logger.warn("要查找的key记录不存在");
 			}
 		} catch (Exception e) {
 			logger.error("获取value数据出错：", e);

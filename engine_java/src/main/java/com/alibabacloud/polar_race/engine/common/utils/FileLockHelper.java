@@ -13,7 +13,7 @@ import java.nio.channels.FileLock;
  * 读的时候加共享锁：其它线程可读但不可写
  * 写的时候加独占锁：其它线程不可读也不可写
  */
-public class FileLockUtil {
+public class FileLockHelper {
 
     private static FileLock fileLock = null;
 

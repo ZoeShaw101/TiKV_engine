@@ -25,8 +25,6 @@ public class BenchMark {
 
     private static Random random = new Random();
 
-    //todo: 0.并发读写（利用读写锁）、 1.并发环境下的恢复机制（根据LOG文件）
-
     public static void SimpleTest() throws Exception {
         EngineRace engineRace = new EngineRace();
         try {
@@ -34,8 +32,8 @@ public class BenchMark {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        byte[] key = String.valueOf(100).getBytes();  //485 20 909 337 245 927
-        byte[] v = "today is a good day hah!".getBytes();
+        byte[] key = String.valueOf(973).getBytes();  //198 197 66
+        byte[] v = "attacking algo go go go!".getBytes();
         try {
             engineRace.write(key, v);
         } catch (Exception e) {
@@ -47,6 +45,7 @@ public class BenchMark {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        engineRace.close();
     }
 
     public static void ConcurrentTest1() {
@@ -78,8 +77,8 @@ public class BenchMark {
 
     }
 
-    public static void RecoveryTest() {
-
+    public static void RecoveryTest() throws Exception {
+        SimpleTest();
     }
 
     public static void SysBenchMark() {
@@ -87,8 +86,9 @@ public class BenchMark {
     }
 
     public static void main(String[] args) throws Exception{
-        SimpleTest();
+        //SimpleTest();
         //ConcurrentTest1();
-        //RecoveryTest();
+
+        RecoveryTest();
     }
 }
