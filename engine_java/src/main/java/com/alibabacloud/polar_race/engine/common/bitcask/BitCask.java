@@ -22,7 +22,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * 核心思想就是维护索引文件和数据文件
  *
  * todo: 对文件行加锁，而不是对整个文件加锁
- * todo: 并发读写不能正常关闭系统
+ *
  */
 
 public class BitCask<T> {
@@ -126,18 +126,20 @@ public class BitCask<T> {
             if (!redoLogMap.containsKey(key)) {
                 redoLogMap.put(key, new ArrayList<>());
             }
-            redoLogMap.get(key).add((RedoLog) log);
+            redoLogMap.get(key).add((RedoLog) log );
         }
         for (String key : redoLogMap.keySet()) {
             Collections.sort(redoLogMap.get(key), (a, b) -> (int) (b.getTimestamp() - a.getTimestamp()));
         }
-        logger.info("要恢复的数据有size=" + redoLogMap.keySet().size() + "个");
+        int cnt = 0;
         for (String key : redoLogMap.keySet()) {
             RedoLog lastLog = redoLogMap.get(key).get(0);
             if (lastLog.isCommit()) continue;
             put(lastLog.getKey(), (T) lastLog.getNewValue());
+            cnt++;
             logger.info("执行数据恢复redoLog=" + lastLog.toString());
         }
+        logger.info("要恢复的数据有" + cnt + "个");
     }
 
     /*private void writeToDisk(String logPath) {

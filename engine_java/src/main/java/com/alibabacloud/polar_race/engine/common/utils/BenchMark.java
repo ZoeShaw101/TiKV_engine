@@ -34,7 +34,7 @@ public class BenchMark {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        byte[] key = String.valueOf(646).getBytes();  //749 not: 209 128 151 470 133 779
+        byte[] key = String.valueOf(124).getBytes();  //749 not: 209 128 151 470 133 779
         byte[] v = "today is a good day!".getBytes();
 
 //        try {
@@ -152,7 +152,7 @@ public class BenchMark {
 
         //ConcurrentTest1();
 
-        //RecoveryTest();
+        //RecoveryTest();  //运行的时候手动kill -9
 
         //SysBenchMark();
     }
