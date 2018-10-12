@@ -1,6 +1,8 @@
 package com.alibabacloud.polar_race.engine.common.utils;
 
 import com.alibabacloud.polar_race.engine.common.EngineRace;
+import com.alibabacloud.polar_race.engine.common.exceptions.EngineException;
+import javafx.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.util.Random;
@@ -8,6 +10,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 程序正确性验证与性能测试
@@ -27,6 +30,14 @@ public class BenchMark {
 
     private static Random random = new Random();
 
+    public static Pair<byte[], byte[]> keyValueGenerator() {
+        byte[] key = new byte[8];
+        byte[] value = new byte[4000];
+        random.nextBytes(key);
+        random.nextBytes(value);
+        return new Pair<>(key, value);
+    }
+
     public static void SimpleTest() {
         EngineRace engineRace = new EngineRace();
         try {
@@ -34,15 +45,16 @@ public class BenchMark {
         } catch (Exception e) {
             e.printStackTrace();
         }
+//        Pair<byte[], byte[]> keyValue = keyValueGenerator();
+//        byte[] key = keyValue.getKey();
+//        byte[] v = keyValue.getValue();
         byte[] key = String.valueOf(124).getBytes();  //749 not: 209 128 151 470 133 779
         byte[] v = "today is a good day!".getBytes();
-
-//        try {
-//            engineRace.write(key, v);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-
+        try {
+            engineRace.write(key, v);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         try {
             byte[] value = engineRace.read(key);
             logger.info("key=" + new String(key) + " , value=" + new String(value));
@@ -52,18 +64,23 @@ public class BenchMark {
         engineRace.close();
     }
 
-    public static void ConcurrentTest1() throws InterruptedException {
+    public static void SysBenchMark() throws InterruptedException, EngineException {
         final EngineRace engineRace = new EngineRace();
+        engineRace.open(DB_PATH);
+        AtomicLong byteNum = new AtomicLong(0);
+        long start = System.currentTimeMillis();
         try {
-            engineRace.open(DB_PATH);
             for (int i = 0; i < THREAD_NUM; i++) {
                 pool.execute(new Runnable() {
                     public void run() {
-                        int key =  random.nextInt(1000);
-                        String value = String.valueOf(random.nextGaussian());
                         try {
-                            engineRace.write(String.valueOf(key).getBytes(), value.getBytes());
-                            logger.info("线程" + Thread.currentThread().getName() + "执行写操作");
+                            for (int j = 0; j < KEY_NUM; j++) {
+                                byte[] key =  String.valueOf(random.nextInt(1000)).getBytes();
+                                byte[] value = String.valueOf(random.nextGaussian()).getBytes();
+                                byteNum.getAndAdd(key.length + value.length);
+                                engineRace.write(key, value);
+                                logger.info("线程" + Thread.currentThread().getName() + "执行写操作");
+                            }
                         } catch (Exception e) {
                             logger.error(e);
                         } finally {
@@ -78,6 +95,10 @@ public class BenchMark {
             pool.shutdown();
         }
         countDownLatch.await();  //阻塞主线程直到所有线程都执行完毕，关闭系统
+        long cost = System.currentTimeMillis() - start;
+        System.out.println("=====================================");
+        System.out.println("iops=" + (THREAD_NUM * KEY_NUM) / (cost / 1000) + ", 吞吐量=" + byteNum.get() / (cost / 1000));
+        System.out.println("=====================================");
         engineRace.close();
     }
 
@@ -113,7 +134,7 @@ public class BenchMark {
         engineRace.close();
     }
 
-    public static void SysBenchMark() throws Exception {
+    public static void ConcurrentTest1() throws Exception {
         long start = System.currentTimeMillis();
         final EngineRace engineRace = new EngineRace();
         try {
@@ -148,12 +169,12 @@ public class BenchMark {
     }
 
     public static void main(String[] args) throws Exception {
-        SimpleTest();
+        //SimpleTest();
 
         //ConcurrentTest1();
 
         //RecoveryTest();  //运行的时候手动kill -9
 
-        //SysBenchMark();
+        SysBenchMark();
     }
 }
