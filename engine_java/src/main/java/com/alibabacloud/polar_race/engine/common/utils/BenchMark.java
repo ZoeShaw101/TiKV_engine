@@ -48,7 +48,7 @@ public class BenchMark {
 //        Pair<byte[], byte[]> keyValue = keyValueGenerator();
 //        byte[] key = keyValue.getKey();
 //        byte[] v = keyValue.getValue();
-        byte[] key = String.valueOf(124).getBytes();  //749 not: 209 128 151 470 133 779
+        byte[] key = String.valueOf(2144).getBytes();  //749 not: 209 128 151 470 133 779
         byte[] v = "today is a good day!".getBytes();
         try {
             engineRace.write(key, v);
@@ -143,12 +143,9 @@ public class BenchMark {
                 pool.execute(new Runnable() {
                     public void run() {
                         try {
-                            for (int j = 0; j < KEY_NUM; j++) {
-                                int key =  random.nextInt(1000);
-                                String value = String.valueOf(random.nextGaussian());
-                                engineRace.write(String.valueOf(key).getBytes(), value.getBytes());
-                                logger.info("线程" + Thread.currentThread().getName() + "执行写操作");
-                            }
+                            int key =  random.nextInt(1000);
+                            String value = String.valueOf(random.nextGaussian());
+                            engineRace.write(String.valueOf(key).getBytes(), value.getBytes());
                         } catch (Exception e) {
                             logger.error(e);
                         } finally {
@@ -165,7 +162,6 @@ public class BenchMark {
         countDownLatch.await();  //阻塞主线程直到所有线程都执行完毕，关闭系统
         engineRace.close();
         long cost = System.currentTimeMillis() - start;
-        logger.info("64条线程并发读写100百万数据耗时cost=" + cost);
     }
 
     public static void main(String[] args) throws Exception {

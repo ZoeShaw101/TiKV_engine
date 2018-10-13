@@ -45,7 +45,6 @@ public class BitCask<T> {
     private Map<String, List<RedoLog>> redoLogMap;  //重做日志表，用于意外掉电时恢复
 
     private ReadWriteLock rwLock = new ReentrantReadWriteLock();  //读写锁
-    //private Timer timer;  //它其实是一个线程
 
     public BitCask(String dbName) throws EngineException {
         this.dbName = dbName;
@@ -92,15 +91,7 @@ public class BitCask<T> {
                 logger.error(e);
             }
         }
-
         checkRedoLog(redoLogPath);
-
-        /*timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                writeToDisk(redoLogPath);
-            }
-        }, PERIOD, PERIOD);*/
     }
 
     private void loadIndex(String filePath) throws EngineException {
@@ -202,7 +193,6 @@ public class BitCask<T> {
 
         checkActiveFile(dbName + DATA_DIR);
         writeBytesToFile(key, bytes, dbName + DATA_DIR);
-        updateIndex(key, bytes);
 
         curLog.setCommit(true);
         curLog.setTimestamp(new Date().getTime());
@@ -289,10 +279,12 @@ public class BitCask<T> {
         try {
             file = new RandomAccessFile(filePath, "rw");
             long offset = file.length();
+            activeFileOffset.compareAndSet(activeFileOffset.get(), offset);
             file.seek(offset);
             file.write(bytes);
-            activeFileOffset.set(offset);
-            logger.info("向数据文件" +  activeFileId.get() + "写入key=" + key +", value=" + new String(bytes) + "的数据");
+            logger.info("向数据文件" +  activeFileId.get() + " , offset=" + activeFileOffset.get()
+                    + " 写入key=" + key +", value=" + new String(bytes) + "的数据");
+            updateIndex(key, bytes);
         } catch (IOException e) {
             throw new EngineException(RetCodeEnum.IO_ERROR, "写物理数据文件出错!");
         } finally {
