@@ -30,7 +30,7 @@ public class BitCask<T> {
     private Logger logger = Logger.getLogger(BitCask.class);
 
     private final String dbName;  //数据库名
-    private static final long DEFAULT_ACTIVE_FILE_SIZE = 4096;  //活跃文件最大大小
+    private static final long DEFAULT_ACTIVE_FILE_SIZE = 1024 * 1024 * 100;  //活跃文件最大大小
     private static final long DEFAULT_INDEX_FILE_SIZE = 4096;
     private static final String INDEX_DIR = "/index";
     private static final String DATA_DIR = "/data";

@@ -65,41 +65,34 @@ public class BenchMark {
     }
 
     public static void SysBenchMark() throws InterruptedException, EngineException {
-        final EngineRace engineRace = new EngineRace();
+        final CountDownLatch countDownLatch = new CountDownLatch(THREAD_NUM);
+        EngineRace engineRace = new EngineRace();
         engineRace.open(DB_PATH);
         AtomicLong byteNum = new AtomicLong(0);
         long start = System.currentTimeMillis();
-        try {
-            for (int i = 0; i < THREAD_NUM; i++) {
-                pool.execute(new Runnable() {
-                    public void run() {
-                        try {
-                            for (int j = 0; j < KEY_NUM; j++) {
-                                byte[] key =  String.valueOf(random.nextInt(1000)).getBytes();
-                                byte[] value = String.valueOf(random.nextGaussian()).getBytes();
-                                byteNum.getAndAdd(key.length + value.length);
-                                engineRace.write(key, value);
-                                logger.info("线程" + Thread.currentThread().getName() + "执行写操作");
-                            }
-                        } catch (Exception e) {
-                            logger.error(e);
-                        } finally {
-                            countDownLatch.countDown();
-                        }
+        for (int i = 0; i < THREAD_NUM; i++) {
+            pool.execute(() -> {
+                try {
+                    for (int j = 0; j < KEY_NUM; j++) {
+                        byte[] key =  String.valueOf(random.nextInt(1000)).getBytes();
+                        byte[] value = String.valueOf(random.nextGaussian()).getBytes();
+                        byteNum.getAndAdd(key.length + value.length);
+                        engineRace.write(key, value);
                     }
-                });
-            }
-        } catch (Exception e) {
-            logger.error(e);
-        } finally {
-            pool.shutdown();
+                } catch (Exception e) {
+                    logger.error(e);
+                } finally {
+                    countDownLatch.countDown();
+                }
+            });
         }
-        countDownLatch.await();  //阻塞主线程直到所有线程都执行完毕，关闭系统
+        countDownLatch.await();
+        pool.shutdown();
+        engineRace.close();
         long cost = System.currentTimeMillis() - start;
         System.out.println("=====================================");
-        System.out.println("iops=" + (THREAD_NUM * KEY_NUM) / (cost / 1000) + ", 吞吐量=" + byteNum.get() / (cost / 1000));
+        System.out.println("cost=" + cost + "ms, iops=" + (1000 * THREAD_NUM * KEY_NUM) / cost + ", 吞吐量=" + 1000 * byteNum.get() / cost );
         System.out.println("=====================================");
-        engineRace.close();
     }
 
 
