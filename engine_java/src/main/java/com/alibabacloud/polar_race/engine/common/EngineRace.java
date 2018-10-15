@@ -4,6 +4,7 @@ import com.alibabacloud.polar_race.engine.common.AbstractEngine;
 import com.alibabacloud.polar_race.engine.common.bitcask.BitCask;
 import com.alibabacloud.polar_race.engine.common.exceptions.EngineException;
 import com.alibabacloud.polar_race.engine.common.exceptions.RetCodeEnum;
+import com.alibabacloud.polar_race.engine.common.lsmtree.LSMTree;
 import com.alibabacloud.polar_race.engine.common.utils.Serialization;
 import org.apache.log4j.Logger;
 
@@ -12,6 +13,7 @@ public class EngineRace extends AbstractEngine {
 
 	private Logger logger = Logger.getLogger(EngineRace.class);
 	private BitCask<byte[]> bitCask;
+	private LSMTree lsmTree;
 
 	@Override
 	public void open(String path) throws EngineException {

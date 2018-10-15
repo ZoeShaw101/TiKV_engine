@@ -10,8 +10,7 @@ import java.util.Deque;
 public class Level {
     private int maxRuns;
     private long maxRunSize;
-    private Deque<Run> runs;  //最近时间的插入到最前面
-
+    private Deque<SSTable> runs;  //最近时间的插入到最前面
 
     public Level(int maxRuns, long maxRunSize) {
         this.maxRuns = maxRuns;
@@ -19,11 +18,13 @@ public class Level {
         runs = new ArrayDeque<>();
     }
 
-    public Deque<Run> getRuns() {
+    public Deque<SSTable> getRuns() {
         return runs;
     }
 
     public long getMaxRunSize() {
         return maxRunSize;
     }
+
+    public int getRemaining() {return maxRuns - runs.size();}
 }
