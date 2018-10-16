@@ -1,5 +1,6 @@
 package com.alibabacloud.polar_race.engine.common.lsmtree;
 
+import com.alibabacloud.polar_race.engine.common.utils.FileHelper;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -16,23 +17,43 @@ import java.util.*;
 public class SSTable {
     private Logger logger = Logger.getLogger(SSTable.class);
 
-    static final String DB_STORE_PATH = "/lsmdb/data/table.sst";
+    static final String DB_STORE_DIR = "/lsmdb";
     private long maxSize;
     private long size;
     private String minKey;
     private String maxKey;   //维护一个table内最大的key值
+    private int tableIndex;
+    private int levelIndex;
+    private String tableFilePath;
     private BloomFilter bloomFilter;
     private List<byte[]> fencePointers;   //每个SSTbale的key指针
     private long mappingOffset;   //即当前的SSTable的size
 
-    public SSTable(long maxSize, double BFbitPerEntry) {
+    public SSTable(long maxSize, double BFbitPerEntry, int tableIndex, int levelIndex) {
         this.maxSize = maxSize;
+        this.tableIndex = tableIndex;
+        this.levelIndex = levelIndex;
         bloomFilter = new BloomFilter((long) (maxSize * BFbitPerEntry));
         fencePointers = new ArrayList<>();
         mappingOffset = 0;
         size = 0;
         maxKey = "";
         minKey = "";
+        if (!FileHelper.fileExists(DB_STORE_DIR)) {
+            try {
+                FileHelper.createDir(DB_STORE_DIR);
+            } catch (Exception e) {
+                logger.error("创建数据库目录失败" + e);
+            }
+        }
+        tableFilePath = DB_STORE_DIR + "/level" + levelIndex + "_table" + tableIndex + ".sst";
+        if (!FileHelper.fileExists(tableFilePath)) {
+            try {
+                FileHelper.createFile(tableFilePath);
+            } catch (Exception e) {
+                logger.error("创建sstable文件失败" + e);
+            }
+        }
     }
 
     public void write(byte[] key, byte[] value) {
@@ -45,9 +66,9 @@ public class SSTable {
         KVEntry mapping = new KVEntry(key, value);
         long mappingLength = LSMTree.KEY_BYTE_SIZE + LSMTree.VALUE_BYTE_SIZE;
         try {
-            file = new RandomAccessFile(DB_STORE_PATH, "rw");
+            file = new RandomAccessFile(tableFilePath, "rw");
             MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_WRITE, mappingOffset, mappingLength);
-            buffer.put(mapping.getBytes());
+            buffer.put(mapping.toBytes());
             logger.info("写入内存映射：key=" + new String(key) + ", value=" + new String(value));  //本地测试的时候key value都是String类型
         } catch (Exception e) {
             logger.error("内存映射文件错误" + e);
@@ -80,7 +101,7 @@ public class SSTable {
         RandomAccessFile file = null;
         byte[] readBytes = new byte[LSMTree.BLOCK_SIZE];
         try {
-            file = new RandomAccessFile(DB_STORE_PATH, "rw");
+            file = new RandomAccessFile(tableFilePath, "rw");
             MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_ONLY, pageIndex * LSMTree.BLOCK_SIZE, LSMTree.BLOCK_SIZE);
             buffer.get(readBytes);
         } catch (Exception e) {
@@ -94,6 +115,7 @@ public class SSTable {
                 }
             }
         }
+        //todo: 这里顺序找效率低
         for (int i = 0; i < LSMTree.BLOCK_SIZE / LSMTree.ENTRY_BYTE_SIZE; i += LSMTree.ENTRY_BYTE_SIZE) {
             byte[] tmpKey = new byte[LSMTree.KEY_BYTE_SIZE];
             int idx = 0, j = i;
@@ -153,5 +175,37 @@ public class SSTable {
 
     public long getSize() {
         return size;
+    }
+
+    public Logger getLogger() {
+        return logger;
+    }
+
+    public int getTableIndex() {
+        return tableIndex;
+    }
+
+    public int getLevelIndex() {
+        return levelIndex;
+    }
+
+    public void setLogger(Logger logger) {
+        this.logger = logger;
+    }
+
+    public void setTableIndex(int tableIndex) {
+        this.tableIndex = tableIndex;
+    }
+
+    public void setLevelIndex(int levelIndex) {
+        this.levelIndex = levelIndex;
+    }
+
+    public static String getDbStoreDir() {
+        return DB_STORE_DIR;
+    }
+
+    public String getTableFilePath() {
+        return tableFilePath;
     }
 }

@@ -27,7 +27,7 @@ public class LSMTree {
     //系统参数，可用于调节性能
     static final double BF_BITS_PER_ENTRY = 5;
     static final int TREE_DEPTH = 5;
-    static final int TREE_FANOUT = 10;
+    static final int TREE_FANOUT = 10;  //每层level的sstable个数
     static final int BUFFER_NUM_BLOCKS = 1000;
     static final int THREAD_COUNT = 4;
     static final int KEY_BYTE_SIZE = 4;  //4B
@@ -38,9 +38,10 @@ public class LSMTree {
 
     private MemTable memTable;
     private List<Level> levels;
-    private Map<byte[], String> thinIndex;    //稀疏索引:用于在Run中查找特定的Key, value值为该key在哪个level的哪个Run，在Run中可以使用二分查找
-    private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
+    //private Map<byte[], String> thinIndex;    //稀疏索引:用于在Run中查找特定的Key, value值为该key在哪个level的哪个Run，在Run中可以使用二分查找
+    //private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
 
+    private static final String MANIFEST_FILE_PATH = "/lsmdb/data/manifest"; //记录当前level的sstable的key的范围(minKey-maxKey)
 
     public LSMTree() {
         memTable = new MemTable(BUFFER_MAX_ENTRIES);
@@ -50,11 +51,13 @@ public class LSMTree {
         int depth = TREE_DEPTH;
         while ((depth--) > 0) {
             levels.add(new Level(TREE_FANOUT, maxRunSize));
-            maxRunSize *= BUFFER_MAX_ENTRIES;
+            maxRunSize *= TREE_FANOUT;
         }
     }
 
-
+    /**
+     * 一次写入操作只涉及一次磁盘顺序写或一次内存写入，所以很快
+     */
     public void write(byte[] key, byte[] value) {
         //0.先看能不能插入buffer
         if (memTable.write(key, value)) {
@@ -63,7 +66,11 @@ public class LSMTree {
         //1.如果不能插入buffer，说明buffer已满，则看能不能将buffer刷到level 0上，先看需不需要进行归并操作
         mergeDown(0);
         //2.buffer刷到level 0上
-        levels.get(0).getRuns().addFirst(new SSTable(levels.get(0).getMaxRunSize(), BF_BITS_PER_ENTRY));
+        levels.get(0).getRuns().addFirst(new SSTable(
+                levels.get(0).getMaxRunSize(),
+                BF_BITS_PER_ENTRY,
+                levels.get(0).getRuns().size(),
+                0));
         for (Map.Entry<byte[], byte[]> entry : memTable.getEntries().entrySet()) {
             levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
         }
@@ -130,17 +137,21 @@ public class LSMTree {
         RandomAccessFile file = null;
         byte[] mapping = null;
         try {
-            file = new RandomAccessFile(SSTable.DB_STORE_PATH, "rw");
             for (SSTable table : levels.get(currentLevel).getRuns()) {
+                file = new RandomAccessFile(table.getTableFilePath(), "rw");
                 mapping = new byte[(int) table.getMaxSize() * ENTRY_BYTE_SIZE];
                 MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_ONLY,
                         0, table.getMaxSize() * LSMTree.ENTRY_BYTE_SIZE);
                 buffer.get(mapping);
                 mergeOps.add(mapping, table.getSize());
             }
-            levels.get(nextLevel).getRuns().addFirst(new SSTable(levels.get(nextLevel).getMaxRunSize(), BF_BITS_PER_ENTRY));
+            levels.get(nextLevel).getRuns().addFirst(new SSTable(
+                    levels.get(nextLevel).getMaxRunSize(),
+                    BF_BITS_PER_ENTRY,
+                    levels.get(nextLevel).getRuns().size(),
+                    nextLevel));
             while (!mergeOps.isDone()) {
-                KVEntry entry= mergeOps.next();
+                KVEntry entry = mergeOps.next();
                 levels.get(nextLevel).getRuns().getFirst().write(entry.getKey(), entry.getValue());
             }
         } catch (Exception e) {

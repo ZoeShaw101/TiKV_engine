@@ -1,8 +1,6 @@
 package com.alibabacloud.polar_race.engine.common.lsmtree;
 
 
-import com.alibabacloud.polar_race.engine.common.lsmtree.LSMTree;
-
 import java.util.Arrays;
 
 public class KVEntry {
@@ -30,12 +28,11 @@ public class KVEntry {
         this.value = value;
     }
 
-    public byte[] getBytes() {
-        byte[] bytes = new byte[LSMTree.KEY_BYTE_SIZE + LSMTree.VALUE_BYTE_SIZE];
-        for (int i = 0; i < bytes.length; i++) {
-
-        }
-        return bytes;
+    public byte[] toBytes() {
+        byte[] arr = new byte[key.length + value.length];
+        System.arraycopy(key, 0, arr, 0, key.length);
+        System.arraycopy(value, 0, arr, key.length, value.length);
+        return arr;
     }
 
     @Override
