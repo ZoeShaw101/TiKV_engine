@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 /**
- * 内存中的缓存：相当于MemTable
+ * 内存中的缓存：MemTable
  *
  */
 

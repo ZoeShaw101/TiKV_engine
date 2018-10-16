@@ -12,29 +12,32 @@ import org.apache.log4j.Logger;
 public class EngineRace extends AbstractEngine {
 
 	private Logger logger = Logger.getLogger(EngineRace.class);
-	private BitCask<byte[]> bitCask;
+	//private BitCask<byte[]> bitCask;
 	private LSMTree lsmTree;
 
 	@Override
 	public void open(String path) throws EngineException {
-		bitCask = new BitCask<byte[]>(path);
+		//bitCask = new BitCask<byte[]>(path);
+		lsmTree = new LSMTree();
 	}
 	
 	@Override
 	public void write(byte[] key, byte[] value) throws EngineException {
-		String strKey = new String(key);
+		lsmTree.write(key, value);
+		/*String strKey = new String(key);
 		try {
 			if (bitCask != null) {
 				bitCask.put(strKey, value);
 			}
 		} catch (Exception e) {
 			logger.error("写入k/v数据出错：", e);
-		}
+		}*/
 	}
 	
 	@Override
 	public byte[] read(byte[] key) throws EngineException {
-		String strKey = new String(key);
+		return lsmTree.read(key);
+		/*String strKey = new String(key);
 		byte[] value = null;
 		try {
 			if (bitCask != null) {
@@ -44,7 +47,7 @@ public class EngineRace extends AbstractEngine {
 		} catch (Exception e) {
 			logger.error("获取value数据出错：", e);
 		}
-		return value;
+		return value;*/
 	}
 	
 	@Override
@@ -53,7 +56,8 @@ public class EngineRace extends AbstractEngine {
 	
 	@Override
 	public void close() {
-		bitCask.close();
+		lsmTree.close();
+		//bitCask.close();
 	}
 
 }

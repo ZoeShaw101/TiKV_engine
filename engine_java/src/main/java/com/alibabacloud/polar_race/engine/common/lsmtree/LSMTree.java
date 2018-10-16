@@ -2,6 +2,10 @@ package com.alibabacloud.polar_race.engine.common.lsmtree;
 
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,16 +24,22 @@ import java.util.concurrent.Executors;
 public class LSMTree {
     private Logger logger = Logger.getLogger(LSMTree.class);
 
-    private static final double BF_BITS_PER_ENTRY = SysParam.BF_BITS_PER_ENTRY.getParamVal();
-    private static final int TREE_DEPTH = (int) SysParam.TREE_DEPTH.getParamVal();
-    private static final int TREE_FANOUT = (int) SysParam.TREE_FANOUT.getParamVal();
-    private static final int BUFFER_MAX_ENTRIES =
-            (int) SysParam.BUFFER_NUM_PAGES.getParamVal() * 4096 / 4104;  //最大页数 * 每页大小 ／ Entry大小
+    //系统参数，可用于调节性能
+    static final double BF_BITS_PER_ENTRY = 5;
+    static final int TREE_DEPTH = 5;
+    static final int TREE_FANOUT = 10;
+    static final int BUFFER_NUM_BLOCKS = 1000;
+    static final int THREAD_COUNT = 4;
+    static final int KEY_BYTE_SIZE = 4;  //4B
+    static final int VALUE_BYTE_SIZE = 4096;   //4KB
+    static final int ENTRY_BYTE_SIZE = 4104;  //定长的 8 + 4096
+    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 200;  //每个SSTable的BLOCK大小
+    static final int BUFFER_MAX_ENTRIES = BUFFER_NUM_BLOCKS * BLOCK_SIZE / ENTRY_BYTE_SIZE;  //最大页数 * 每页大小 ／ Entry大小
 
     private MemTable memTable;
     private List<Level> levels;
     private Map<byte[], String> thinIndex;    //稀疏索引:用于在Run中查找特定的Key, value值为该key在哪个level的哪个Run，在Run中可以使用二分查找
-    private ExecutorService pool = Executors.newFixedThreadPool((int) SysParam.THREAD_COUNT.getParamVal());
+    private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
 
 
     public LSMTree() {
@@ -68,10 +78,10 @@ public class LSMTree {
         if ((latestVal = memTable.read(key)) != null)
             return latestVal;
         //1.buffer中不存在，则在runs中查找，todo:这里可以多线程并发地找
+        SSTable table;
         for (Level level : levels) {
-            for (SSTable run : level.getRuns()) {
-                if ((latestVal = run.read(key)) != null)
-                    return latestVal;
+            if ((table = level.findKeyInTables(key)) != null) {
+                return table.read(key);
             }
         }
         /*AtomicInteger counter = new AtomicInteger(0);
@@ -98,6 +108,7 @@ public class LSMTree {
 
     /**
      * 自上而下进行merge操作
+     * todo: 应该放在后台线程，而不用阻塞put操作
      */
     private void mergeDown(int currentLevel) {
         int nextLevel;
@@ -114,10 +125,44 @@ public class LSMTree {
             mergeDown(nextLevel);
             assert levels.get(nextLevel).getRemaining() > 0;
         }
-        //todo:找到下一层是空闲的，则在把当前层所有的runs都归并，并放入下一层的第一个run，然后清空当前层
-
+        //找到下一层是空闲的，则在把当前层所有的SSTable都归并，并放入下一层的第一个SSTable，然后清空当前层
+        MergeOps mergeOps = new MergeOps();
+        RandomAccessFile file = null;
+        byte[] mapping = null;
+        try {
+            file = new RandomAccessFile(SSTable.DB_STORE_PATH, "rw");
+            for (SSTable table : levels.get(currentLevel).getRuns()) {
+                mapping = new byte[(int) table.getMaxSize() * ENTRY_BYTE_SIZE];
+                MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_ONLY,
+                        0, table.getMaxSize() * LSMTree.ENTRY_BYTE_SIZE);
+                buffer.get(mapping);
+                mergeOps.add(mapping, table.getSize());
+            }
+            levels.get(nextLevel).getRuns().addFirst(new SSTable(levels.get(nextLevel).getMaxRunSize(), BF_BITS_PER_ENTRY));
+            while (!mergeOps.isDone()) {
+                KVEntry entry= mergeOps.next();
+                levels.get(nextLevel).getRuns().getFirst().write(entry.getKey(), entry.getValue());
+            }
+        } catch (Exception e) {
+            logger.error("内存映射文件错误" + e);
+        } finally {
+            if (file != null) {
+                try {
+                    file.close();
+                } catch (IOException e) {
+                    logger.error("关闭文件出错" + e);
+                }
+            }
+        }
+        levels.get(currentLevel).getRuns().clear();
     }
 
 
+    /**
+     * 将每个level的信息都保存到manifest文件中
+     */
+    public void close() {
+
+    }
 
 }
