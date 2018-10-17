@@ -31,24 +31,4 @@ public class Serialization {
         ObjectInputStream is = new ObjectInputStream(in);
         return is.readObject();
     }
-
-    public static void main(String[] args) {
-        byte[] key = String.valueOf(1314).getBytes();
-        byte[] v = "today is a good day!".getBytes();
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("1314", "happy day");
-        String s = null;
-        try {
-            s = serializeToStr(map);
-            System.out.println(s);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            Map<String, String> omap = (Map<String, String>) deserializeFromStr(s);
-            System.out.println(omap.get("1314"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }

@@ -17,36 +17,35 @@ import java.util.*;
 public class SSTable {
     private Logger logger = Logger.getLogger(SSTable.class);
 
-    static final String DB_STORE_DIR = "/lsmdb";
     private long maxSize;
     private long size;
-    private String minKey;
     private String maxKey;   //维护一个table内最大的key值
     private int tableIndex;
     private int levelIndex;
     private String tableFilePath;
-    private BloomFilter bloomFilter;
-    private List<byte[]> fencePointers;   //每个SSTbale的key指针
-    private long mappingOffset;   //即当前的SSTable的size
 
-    public SSTable(long maxSize, double BFbitPerEntry, int tableIndex, int levelIndex) {
+    //private BloomFilter bloomFilter;
+    private GuavaBloomFilter bloomFilter;
+    private List<byte[]> fencePointers;   //每个SSTbale的key指针
+
+    public SSTable(long maxSize, double BFbitPerEntry, int tableIndex, int levelIndex,
+                   List<byte[]> fencePointers, GuavaBloomFilter bloomFilter) {
         this.maxSize = maxSize;
         this.tableIndex = tableIndex;
         this.levelIndex = levelIndex;
-        bloomFilter = new BloomFilter((long) (maxSize * BFbitPerEntry));
-        fencePointers = new ArrayList<>();
-        mappingOffset = 0;
-        size = 0;
-        maxKey = "";
-        minKey = "";
-        if (!FileHelper.fileExists(DB_STORE_DIR)) {
-            try {
-                FileHelper.createDir(DB_STORE_DIR);
-            } catch (Exception e) {
-                logger.error("创建数据库目录失败" + e);
-            }
-        }
-        tableFilePath = DB_STORE_DIR + "/level" + levelIndex + "_table" + tableIndex + ".sst";
+        this.size = 0;
+        this.maxKey = "";
+        //bloomFilter = new BloomFilter((long) (maxSize * BFbitPerEntry));
+        if (fencePointers != null)
+            this.fencePointers = fencePointers;
+        else
+            this.fencePointers = new ArrayList<>();
+        if (bloomFilter != null)
+            this.bloomFilter = bloomFilter;
+        else
+            this.bloomFilter = new GuavaBloomFilter();
+
+        tableFilePath = LSMTree.DB_STORE_DIR + "/level" + levelIndex + "_table" + tableIndex + ".sst";
         if (!FileHelper.fileExists(tableFilePath)) {
             try {
                 FileHelper.createFile(tableFilePath);
@@ -57,38 +56,29 @@ public class SSTable {
     }
 
     public void write(byte[] key, byte[] value) {
-        assert mappingOffset < maxSize;
+        assert size < maxSize;
         bloomFilter.set(key);
-        if (mappingOffset % LSMTree.BLOCK_SIZE == 0) {   //那么fencePointer的大小就等于table中页数的大小，i处的值就是该table中第i页的第一个key的值
-            fencePointers.add(key);
-        }
         RandomAccessFile file = null;
         KVEntry mapping = new KVEntry(key, value);
         long mappingLength = LSMTree.KEY_BYTE_SIZE + LSMTree.VALUE_BYTE_SIZE;
         try {
             file = new RandomAccessFile(tableFilePath, "rw");
-            MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_WRITE, mappingOffset, mappingLength);
+            long offset  = file.length();
+            if (offset % LSMTree.BLOCK_SIZE == 0) {   //那么fencePointer的大小就等于table中页数的大小，i处的值就是该table中第i页的第一个key的值
+                fencePointers.add(key);
+            }
+            MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_WRITE, offset, mappingLength);
             buffer.put(mapping.toBytes());
+            if (maxKey.length() == 0 || maxKey.compareTo(new String(key)) < 0) {
+                maxKey = new String(key);
+            }
+            size++;
             logger.info("写入内存映射：key=" + new String(key) + ", value=" + new String(value));  //本地测试的时候key value都是String类型
         } catch (Exception e) {
             logger.error("内存映射文件错误" + e);
         } finally {
-            if (file != null) {
-                try {
-                    file.close();
-                } catch (IOException e) {
-                    logger.error("关闭文件出错" + e);
-                }
-            }
+            FileHelper.closeFile(file);
         }
-        if (minKey.length() == 0 || minKey.compareTo(new String(key)) > 0) {
-            minKey = new String(key);
-        }
-        if (maxKey.length() == 0 || maxKey.compareTo(new String(key)) < 0) {
-            maxKey = new String(key);
-        }
-        mappingOffset += mappingLength;
-        size++;
     }
 
     public byte[] read(byte[] key) {
@@ -107,13 +97,7 @@ public class SSTable {
         } catch (Exception e) {
             logger.error("读取SSTable出错" + e);
         } finally {
-            if (file != null) {
-                try {
-                    file.close();
-                } catch (IOException e) {
-                    logger.error("关闭文件出错" + e);
-                }
-            }
+            FileHelper.closeFile(file);
         }
         //todo: 这里顺序找效率低
         for (int i = 0; i < LSMTree.BLOCK_SIZE / LSMTree.ENTRY_BYTE_SIZE; i += LSMTree.ENTRY_BYTE_SIZE) {
@@ -156,29 +140,20 @@ public class SSTable {
         return begin;
     }
 
+    public void close() {
+
+    }
 
     public String getMaxKey() {
         return maxKey;
-    }
-
-    public String getMinKey() {
-        return minKey;
     }
 
     public long getMaxSize() {
         return maxSize;
     }
 
-    public void close() {
-
-    }
-
     public long getSize() {
         return size;
-    }
-
-    public Logger getLogger() {
-        return logger;
     }
 
     public int getTableIndex() {
@@ -189,10 +164,6 @@ public class SSTable {
         return levelIndex;
     }
 
-    public void setLogger(Logger logger) {
-        this.logger = logger;
-    }
-
     public void setTableIndex(int tableIndex) {
         this.tableIndex = tableIndex;
     }
@@ -201,11 +172,15 @@ public class SSTable {
         this.levelIndex = levelIndex;
     }
 
-    public static String getDbStoreDir() {
-        return DB_STORE_DIR;
-    }
-
     public String getTableFilePath() {
         return tableFilePath;
+    }
+
+    public GuavaBloomFilter getBloomFilter() {
+        return bloomFilter;
+    }
+
+    public List<byte[]> getFencePointers() {
+        return fencePointers;
     }
 }

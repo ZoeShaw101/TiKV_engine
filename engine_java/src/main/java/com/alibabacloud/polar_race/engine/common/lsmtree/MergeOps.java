@@ -39,7 +39,7 @@ public class MergeOps {
     private PriorityQueue<MergeEntry> priorityQueue;
 
     public MergeOps() {
-        this.priorityQueue = new PriorityQueue<MergeEntry>((a, b) -> {
+        this.priorityQueue = new PriorityQueue<>((a, b) -> {
             if (a.head().equals(b.head())) {
                 return b.precedence - a.precedence;  //保证同一个的SSTable里相同key只保留最近写入的一个记录
             } else {
@@ -59,7 +59,6 @@ public class MergeOps {
 
     public KVEntry next() {
         MergeEntry current, next;
-        KVEntry entry = null;
         current = priorityQueue.peek();
         next = current;
         //保证同一个的SSTable里相同key只保留最近写入的一个记录

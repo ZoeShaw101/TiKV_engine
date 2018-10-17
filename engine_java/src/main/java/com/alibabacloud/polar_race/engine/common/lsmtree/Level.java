@@ -14,13 +14,11 @@ public class Level {
     private int maxRuns;
     private long maxRunSize;
     private Deque<SSTable> runs;  //最近时间的插入到最前面，LRU
-    private List<Pair<byte[], byte[]>> keyRange;
 
     public Level(int maxRuns, long maxRunSize) {
         this.maxRuns = maxRuns;
         this.maxRunSize = maxRunSize;
         runs = new ArrayDeque<>();
-        keyRange = loadManifestInfos();
     }
 
     public Deque<SSTable> getRuns() {
@@ -33,16 +31,4 @@ public class Level {
 
     public int getRemaining() {return maxRuns - runs.size();}
 
-    /**
-     * 二分搜索找到对应的SSTable，根据每个table的key的范围(minKey-maxKey)
-     */
-    public SSTable findKeyInTables(byte[] key) {
-
-        return null;
-    }
-
-    private List<Pair<byte[], byte[]>> loadManifestInfos() {
-
-        return null;
-    }
 }

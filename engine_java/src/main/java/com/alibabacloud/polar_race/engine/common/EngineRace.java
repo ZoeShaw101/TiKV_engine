@@ -18,7 +18,7 @@ public class EngineRace extends AbstractEngine {
 	@Override
 	public void open(String path) throws EngineException {
 		//bitCask = new BitCask<byte[]>(path);
-		lsmTree = new LSMTree();
+		lsmTree = new LSMTree(path);
 	}
 	
 	@Override

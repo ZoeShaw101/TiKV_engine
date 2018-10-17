@@ -2,9 +2,11 @@ package com.alibabacloud.polar_race.engine.common.utils;
 
 import com.alibabacloud.polar_race.engine.common.EngineRace;
 import com.alibabacloud.polar_race.engine.common.exceptions.EngineException;
+import com.google.common.base.Charsets;
 import javafx.util.Pair;
 import org.apache.log4j.Logger;
 
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -45,19 +47,18 @@ public class BenchMark {
         } catch (Exception e) {
             e.printStackTrace();
         }
-//        Pair<byte[], byte[]> keyValue = keyValueGenerator();
-//        byte[] key = keyValue.getKey();
-//        byte[] v = keyValue.getValue();
-        byte[] key = String.valueOf(2144).getBytes();  //749 not: 209 128 151 470 133 779
-        byte[] v = "today is a good day!".getBytes();
+        byte[] k = new byte[4];  //
+        byte[] v = new byte[4096];
+        Arrays.fill(k, (byte) 0x32);
+        Arrays.fill(v, (byte) 0x64);
         try {
-            engineRace.write(key, v);
+            engineRace.write(k, v);
         } catch (Exception e) {
             e.printStackTrace();
         }
         try {
-            byte[] value = engineRace.read(key);
-            logger.info("key=" + new String(key) + " , value=" + new String(value));
+            byte[] value = engineRace.read(k);
+            logger.info("key=" + new String(k) + ", value=" + new String(value));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -158,12 +159,12 @@ public class BenchMark {
     }
 
     public static void main(String[] args) throws Exception {
-        //SimpleTest();
+        SimpleTest();
 
         //ConcurrentTest1();
 
         //RecoveryTest();  //运行的时候手动kill -9
 
-        SysBenchMark();
+        //SysBenchMark();
     }
 }

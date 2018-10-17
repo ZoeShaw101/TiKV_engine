@@ -6,6 +6,8 @@ import com.alibabacloud.polar_race.engine.common.exceptions.RetCodeEnum;
 import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,7 +71,13 @@ public class FileHelper {
         return pathFiles;
     }
 
-    public static void main(String[] args) {
-        System.out.println("----");
+    public static void closeFile(RandomAccessFile file) {
+        if (file != null) {
+            try {
+                file.close();
+            } catch (IOException e) {
+                logger.error("关闭文件出错" + e);
+            }
+        }
     }
 }
