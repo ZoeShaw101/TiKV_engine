@@ -2,14 +2,19 @@ package com.alibabacloud.polar_race.engine.common.lsmtree;
 
 import com.alibabacloud.polar_race.engine.common.utils.FileHelper;
 import com.alibabacloud.polar_race.engine.common.utils.Serialization;
+import com.alibabacloud.polar_race.engine.common.wal.RedoLog;
 import org.apache.log4j.Logger;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Log Structured Merge Tree
@@ -38,7 +43,7 @@ public class LSMTree {
     static final int BUFFER_MAX_ENTRIES = BUFFER_NUM_BLOCKS * BLOCK_SIZE / ENTRY_BYTE_SIZE;  //最大页数 * 每页大小 ／ Entry大小
 
     static final String DB_STORE_DIR = "/Users/shaw/lsmdb";
-    private static final String MANIFEST_FILE_PATH = "/Users/shaw/lsmdb/manifest"; //记录当前level的sstable的key的范围(minKey-maxKey)
+    private static final String MANIFEST_FILE_PATH = "/Users/shaw/lsmdb/manifest"; //记录当前level的sstable的maxKey bloomFilter fencePointer
     private static final String LOG_FILE_PATH = "/Users/shaw/lsmdb/redo.log";
 
     //内存中的
@@ -48,6 +53,7 @@ public class LSMTree {
 
     //private Map<byte[], String> thinIndex;    //稀疏索引:用于在Run中查找特定的Key, value值为该key在哪个level的哪个Run，在Run中可以使用二分查找
     //private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
+    private static ReadWriteLock rwLock = new ReentrantReadWriteLock();  //读写锁
 
     public LSMTree(String path) {
         memTable = new MemTable(BUFFER_MAX_ENTRIES);
@@ -72,7 +78,7 @@ public class LSMTree {
         }
         if (!FileHelper.fileExists(LOG_FILE_PATH)) {
             try {
-                FileHelper.createDir(LOG_FILE_PATH);
+                FileHelper.createFile(LOG_FILE_PATH);
             } catch (Exception e) {
                 logger.error("创建日志文件失败" + e);
             }
@@ -87,7 +93,27 @@ public class LSMTree {
         } else {
             manifestInfo = loadManifestInfos();
         }
+        initLevels();
         checkRedoLog();
+    }
+
+    private void initLevels() {
+        List<String> fileNames = FileHelper.getDirFiles(DB_STORE_DIR);
+        for (String fileName : fileNames) {
+            if (!fileName.startsWith("level")) continue;
+            String[] prefix = fileName.split("\\.")[0].split("_");
+            int levelIdx = Integer.valueOf(prefix[0].substring(5));
+            int tableIdx = Integer.valueOf(prefix[1].substring(5));
+            int idx = levelIdx * TREE_FANOUT + tableIdx;
+            levels.get(levelIdx).getRuns().addFirst(new SSTable(
+                    levels.get(levelIdx).getMaxRunSize(),
+                    BF_BITS_PER_ENTRY,
+                    tableIdx,
+                    levelIdx,
+                    manifestInfo.getMaxKeyInfos().get(idx),
+                    manifestInfo.getFencePointerInfos().get(idx),
+                    manifestInfo.getBloomFilterInfos().get(idx)));
+        }
     }
 
     private ManifestInfo loadManifestInfos() {
@@ -108,16 +134,28 @@ public class LSMTree {
     }
 
     private void checkRedoLog() {
-
+        File file = new File(LOG_FILE_PATH);
+        if (file.length() == 0) return;
+        List<Object> entries = FileHelper.readObjectFromFile(LOG_FILE_PATH);
+        logger.info("需要恢复的数据有" + entries.size() + "个");
+        for (Object o : entries) {
+            KVEntry e = (KVEntry) o;
+            write(e.getKey(), e.getValue());
+            logger.info("恢复数据：key=" + new String(e.getKey()) + ", value=" + new String(e.getValue()));
+        }
     }
 
     /**
      * 一次写入操作只涉及一次磁盘顺序写或一次内存写入，所以很快
      */
     public void write(byte[] key, byte[] value) {
-
+        FileHelper.writeObjectToFile(new KVEntry(key, value), LOG_FILE_PATH);
         //0.先看能不能插入buffer
         if (memTable.write(key, value)) {
+            //如果write成功了应该把此时的log删掉，但是万一此时正在写log呢？所以应该加锁
+            rwLock.writeLock().lock();
+            clearRedoLog();
+            rwLock.writeLock().unlock();
             return;
         }
         //todo: 应该放在后台线程，而不用阻塞put操作
@@ -125,18 +163,35 @@ public class LSMTree {
         assert memTable.write(key, value);
     }
 
+    private void clearRedoLog() {
+        File file = new File(LOG_FILE_PATH);
+        try {
+            FileWriter fileWriter = new FileWriter(file);
+            fileWriter.write("");
+            fileWriter.flush();
+        } catch (Exception e) {
+            logger.error("删除redoLog文件失败！");
+        }
+    }
+
+
     private void mergeOps() {
         //1.如果不能插入buffer，说明buffer已满，则看能不能将buffer刷到level 0上，先看需不需要进行归并操作
         mergeDown(0);
-        //2.buffer刷到level 0上
-        levels.get(0).getRuns().addFirst(new SSTable(
-                levels.get(0).getMaxRunSize(),
-                BF_BITS_PER_ENTRY,
-                levels.get(0).getRuns().size(),
-                0,
-                manifestInfo.getFencePointerInfos().get(levels.get(0).getRuns().size()),
-                manifestInfo.getBloomFilterInfos().get(levels.get(0).getRuns().size())));
-        for (Map.Entry<byte[], byte[]> entry : memTable.getEntries().entrySet()) {
+        //2.buffer刷到level 0上，如果当前sstable满了，则创建一个新的
+        if (levels.get(0).getRuns().size() == 0
+                || levels.get(0).getRuns().getFirst().getSize() >= levels.get(0).getRuns().getFirst().getMaxSize()) {
+            int idx = levels.get(0).getRuns().size();
+            levels.get(0).getRuns().addFirst(new SSTable(
+                    levels.get(0).getMaxRunSize(),
+                    BF_BITS_PER_ENTRY,
+                    levels.get(0).getRuns().size(),
+                    0,
+                    manifestInfo.getMaxKeyInfos().get(idx),
+                    manifestInfo.getFencePointerInfos().get(idx),
+                    manifestInfo.getBloomFilterInfos().get(idx)));
+        }
+        for (Map.Entry<byte[], byte[]> entry : memTable.getEntries().entrySet()) {  //todo:这个写入是按顺序的吗?
             levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
         }
         //3.清空buffer，并重新插入
@@ -204,13 +259,15 @@ public class LSMTree {
                 buffer.get(mapping);
                 mergeOps.add(mapping, table.getSize());
             }
+            int idx = nextLevel * TREE_FANOUT + levels.get(nextLevel).getRuns().size();
             levels.get(nextLevel).getRuns().addFirst(new SSTable(
                     levels.get(nextLevel).getMaxRunSize(),
                     BF_BITS_PER_ENTRY,
                     levels.get(nextLevel).getRuns().size(),
                     nextLevel,
-                    manifestInfo.getFencePointerInfos().get(nextLevel * TREE_FANOUT + levels.get(nextLevel).getRuns().size()),
-                    manifestInfo.getBloomFilterInfos().get(nextLevel * TREE_FANOUT + levels.get(nextLevel).getRuns().size())));
+                    manifestInfo.getMaxKeyInfos().get(idx),
+                    manifestInfo.getFencePointerInfos().get(idx),
+                    manifestInfo.getBloomFilterInfos().get(idx)));
             while (!mergeOps.isDone()) {
                 KVEntry entry = mergeOps.next();
                 levels.get(nextLevel).getRuns().getFirst().write(entry.getKey(), entry.getValue());
@@ -234,8 +291,10 @@ public class LSMTree {
         }
         for (Level level : levels) {
             for (SSTable table : level.getRuns()) {
-                manifestInfo.getFencePointerInfos().put(table.getLevelIndex() * table.getTableIndex(), table.getFencePointers());
-                manifestInfo.getBloomFilterInfos().put(table.getLevelIndex() * table.getTableIndex(), table.getBloomFilter());
+                int idx = table.getTableIndex() * table.getLevelIndex();
+                manifestInfo.getMaxKeyInfos().put(idx, table.getMaxKey());
+                manifestInfo.getFencePointerInfos().put(idx, table.getFencePointers());
+                manifestInfo.getBloomFilterInfos().put(idx, table.getBloomFilter());
             }
         }
         RandomAccessFile file = null;

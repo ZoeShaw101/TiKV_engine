@@ -3,17 +3,20 @@ package com.alibabacloud.polar_race.engine.common.utils;
 import com.alibabacloud.polar_race.engine.common.bitcask.BitCask;
 import com.alibabacloud.polar_race.engine.common.exceptions.EngineException;
 import com.alibabacloud.polar_race.engine.common.exceptions.RetCodeEnum;
+import com.alibabacloud.polar_race.engine.common.io.NewObjectOutputStream;
 import org.apache.log4j.Logger;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class FileHelper {
 
     private static Logger logger = Logger.getLogger(FileHelper.class);
+
+    private static ReadWriteLock rwLock = new ReentrantReadWriteLock();  //读写锁
 
     public static boolean fileExists(String filePath) {
         File file = new File(filePath);
@@ -79,5 +82,57 @@ public class FileHelper {
                 logger.error("关闭文件出错" + e);
             }
         }
+    }
+
+    public static void writeObjectToFile(Object obj, String filePath) {
+        ObjectOutputStream oos = null;
+        rwLock.writeLock().lock();
+        try {
+            oos = NewObjectOutputStream.newInstance(filePath);
+            oos.writeObject(obj);
+            oos.flush();
+        } catch (Exception e) {
+            logger.error("将对象序列化进文件出错", e);
+        } finally {
+            if (oos != null) {
+                try {
+                    oos.close();
+                    rwLock.writeLock().unlock();
+                } catch (IOException e) {
+                    logger.error("关闭对象输入流出错", e);
+                }
+            }
+        }
+    }
+
+    public static List<Object> readObjectFromFile(String filePath) {
+        List<Object> objects = new ArrayList<Object>();
+        File file = new File(filePath);
+        ObjectInputStream ois = null;
+        rwLock.readLock().lock();
+        try {
+            ois = new ObjectInputStream(new FileInputStream(file));
+            Object object = ois.readObject();
+            while (object != null) {
+                objects.add(object);
+                try {
+                    object = ois.readObject();
+                } catch (EOFException e) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            logger.error("读取对象输出流出错", e);
+        } finally {
+            if (ois != null) {
+                try {
+                    ois.close();
+                    rwLock.readLock().unlock();
+                } catch (IOException e) {
+                    logger.error("关闭对象输出流出错", e);
+                }
+            }
+        }
+        return objects;
     }
 }

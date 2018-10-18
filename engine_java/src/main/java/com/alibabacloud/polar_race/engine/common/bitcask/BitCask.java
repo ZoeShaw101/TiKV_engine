@@ -95,7 +95,7 @@ public class BitCask<T> {
     }
 
     private void loadIndex(String filePath) throws EngineException {
-        List<Object> indexes = readObjectFromFile(filePath);
+        List<Object> indexes = FileHelper.readObjectFromFile(filePath);
         if (indexes == null) return;
         for (Object index : indexes) {
             if (index == null) continue;
@@ -111,7 +111,7 @@ public class BitCask<T> {
     private void checkRedoLog(String filePath) throws EngineException {
         File file = new File(filePath);
         if (file.length() == 0) return;
-        List<Object> logs = readObjectFromFile(filePath);
+        List<Object> logs = FileHelper.readObjectFromFile(filePath);
         for (Object log : logs) {
             String key = ((RedoLog) log).getKey();
             if (!redoLogMap.containsKey(key)) {
@@ -245,7 +245,7 @@ public class BitCask<T> {
     private void writeToRedoLog(RedoLog redoLog) {
         String redoLogPath = dbName + LOG_DIR + LOG_FILE_PATH;
         try {
-            writeObjectToFile(redoLog, redoLogPath);
+            FileHelper.writeObjectToFile(redoLog, redoLogPath);
             logger.info("操作写入redoLog: RedoLog=" + redoLog.toString());
         } catch (Exception e) {
             logger.error("写入redoLog出错!");
@@ -305,60 +305,8 @@ public class BitCask<T> {
                 bytes.length, this.activeFileOffset.get(), new Date().getTime(), true);
         this._indexer.put(key, index);
         String filePath = dbName + INDEX_DIR + HINT_FILE_NAME;
-        writeObjectToFile(index, filePath);
+        FileHelper.writeObjectToFile(index, filePath);
         logger.info("写入索引文件：index=" + index.toString());
-    }
-
-    private List<Object> readObjectFromFile(String filePath) {
-        List<Object> objects = new ArrayList<Object>();
-        File file = new File(filePath);
-        ObjectInputStream ois = null;
-        rwLock.readLock().lock();
-        try {
-            ois = new ObjectInputStream(new FileInputStream(file));
-            Object object = ois.readObject();
-            while (object != null) {
-                objects.add(object);
-                try {
-                    object = ois.readObject();
-                } catch (EOFException e) {
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            logger.error("读取对象输出流出错", e);
-        } finally {
-            if (ois != null) {
-                try {
-                    ois.close();
-                    rwLock.readLock().unlock();
-                } catch (IOException e) {
-                    logger.error("关闭对象输出流出错", e);
-                }
-            }
-        }
-        return objects;
-    }
-
-    private void writeObjectToFile(Object obj, String filePath) {
-        ObjectOutputStream oos = null;
-        rwLock.writeLock().lock();
-        try {
-            oos = NewObjectOutputStream.newInstance(filePath);
-            oos.writeObject(obj);
-            oos.flush();
-        } catch (Exception e) {
-            logger.error("将对象序列化进文件出错", e);
-        } finally {
-            if (oos != null) {
-                try {
-                    oos.close();
-                    rwLock.writeLock().unlock();
-                } catch (IOException e) {
-                    logger.error("关闭对象输入流出错", e);
-                }
-            }
-        }
     }
 
 

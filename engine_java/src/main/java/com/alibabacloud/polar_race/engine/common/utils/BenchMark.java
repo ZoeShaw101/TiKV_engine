@@ -51,14 +51,15 @@ public class BenchMark {
         byte[] v = new byte[4096];
         Arrays.fill(k, (byte) 0x32);
         Arrays.fill(v, (byte) 0x64);
-        try {
-            engineRace.write(k, v);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        logger.info("准备写key=" + new String(k) + " ,value=" + new String(v));
+//        try {
+//            engineRace.write(k, v);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         try {
             byte[] value = engineRace.read(k);
-            logger.info("key=" + new String(k) + ", value=" + new String(value));
+            logger.info("读取到key=" + new String(k) + ",value=" + new String(value));
         } catch (Exception e) {
             e.printStackTrace();
         }

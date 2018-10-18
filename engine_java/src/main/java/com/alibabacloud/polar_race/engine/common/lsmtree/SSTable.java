@@ -19,23 +19,26 @@ public class SSTable {
 
     private long maxSize;
     private long size;
-    private String maxKey;   //维护一个table内最大的key值
+    private byte[] maxKey;   //维护一个table内最大的key值
     private int tableIndex;
     private int levelIndex;
     private String tableFilePath;
 
     //private BloomFilter bloomFilter;
     private GuavaBloomFilter bloomFilter;
-    private List<byte[]> fencePointers;   //每个SSTbale的key指针
+    private List<byte[]> fencePointers;   //每个SSTbale的key指针，可以看成是block的稀疏索引
 
     public SSTable(long maxSize, double BFbitPerEntry, int tableIndex, int levelIndex,
-                   List<byte[]> fencePointers, GuavaBloomFilter bloomFilter) {
+                   byte[] maxKey, List<byte[]> fencePointers, GuavaBloomFilter bloomFilter) {
         this.maxSize = maxSize;
         this.tableIndex = tableIndex;
         this.levelIndex = levelIndex;
         this.size = 0;
-        this.maxKey = "";
         //bloomFilter = new BloomFilter((long) (maxSize * BFbitPerEntry));
+        if (maxKey != null)
+            this.maxKey = maxKey;
+        else
+            this.maxKey = new byte[0];
         if (fencePointers != null)
             this.fencePointers = fencePointers;
         else
@@ -69,8 +72,8 @@ public class SSTable {
             }
             MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_WRITE, offset, mappingLength);
             buffer.put(mapping.toBytes());
-            if (maxKey.length() == 0 || maxKey.compareTo(new String(key)) < 0) {
-                maxKey = new String(key);
+            if (maxKey.length == 0 || new String(maxKey).compareTo(new String(key)) < 0) {
+                maxKey = key;
             }
             size++;
             logger.info("写入内存映射：key=" + new String(key) + ", value=" + new String(value));  //本地测试的时候key value都是String类型
@@ -87,7 +90,7 @@ public class SSTable {
             return val;
         }
         int nextPage = findUpperBound(key);
-        int pageIndex = nextPage - 1;
+        int pageIndex = nextPage == 0 ? 0 : nextPage - 1;
         RandomAccessFile file = null;
         byte[] readBytes = new byte[LSMTree.BLOCK_SIZE];
         try {
@@ -117,7 +120,7 @@ public class SSTable {
     }
 
     private boolean checkKeyBound(byte[] key) {
-        if (new String(key).compareTo(maxKey) > 0)
+        if (maxKey != null && new String(key).compareTo(new String(maxKey)) > 0)
             return false;
         if (new String(key).compareTo(new String(fencePointers.get(0))) < 0)
             return false;
@@ -144,7 +147,7 @@ public class SSTable {
 
     }
 
-    public String getMaxKey() {
+    public byte[] getMaxKey() {
         return maxKey;
     }
 

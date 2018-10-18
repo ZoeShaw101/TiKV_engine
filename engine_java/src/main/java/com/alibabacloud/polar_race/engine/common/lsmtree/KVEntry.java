@@ -1,9 +1,10 @@
 package com.alibabacloud.polar_race.engine.common.lsmtree;
 
 
+import java.io.Serializable;
 import java.util.Arrays;
 
-public class KVEntry {
+public class KVEntry implements Serializable {
     private byte[] key;  //8B
     private byte[] value;  //4KB
 
