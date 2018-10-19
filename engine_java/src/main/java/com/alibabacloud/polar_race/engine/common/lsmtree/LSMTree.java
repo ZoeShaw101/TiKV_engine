@@ -36,9 +36,9 @@ public class LSMTree {
     static final int TREE_FANOUT = 10;  //每层level的sstable个数
     static final int BUFFER_NUM_BLOCKS = 1000;
     static final int THREAD_COUNT = 4;
-    static final int KEY_BYTE_SIZE = 4;  //4B
-    static final int VALUE_BYTE_SIZE = 4096;   //4KB
-    static final int ENTRY_BYTE_SIZE = 4104;  //定长的 8 + 4096
+    static final int KEY_BYTE_SIZE = 8;  //4B
+    static final int VALUE_BYTE_SIZE = 4000;   //4KB
+    static final int ENTRY_BYTE_SIZE = 4008;
     static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 200;  //每个SSTable的BLOCK大小
     static final int BUFFER_MAX_ENTRIES = BUFFER_NUM_BLOCKS * BLOCK_SIZE / ENTRY_BYTE_SIZE;  //最大页数 * 每页大小 ／ Entry大小
 
@@ -51,7 +51,6 @@ public class LSMTree {
     private List<Level> levels;
     private ManifestInfo manifestInfo;
 
-    //private Map<byte[], String> thinIndex;    //稀疏索引:用于在Run中查找特定的Key, value值为该key在哪个level的哪个Run，在Run中可以使用二分查找
     //private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
     private static ReadWriteLock rwLock = new ReentrantReadWriteLock();  //读写锁
 
@@ -191,8 +190,10 @@ public class LSMTree {
                     manifestInfo.getFencePointerInfos().get(idx),
                     manifestInfo.getBloomFilterInfos().get(idx)));
         }
-        for (Map.Entry<byte[], byte[]> entry : memTable.getEntries().entrySet()) {  //todo:这个写入是按顺序的吗?
+        for (Map.Entry<byte[], byte[]> entry : memTable.getEntries().entrySet()) {  //这个输出就是按顺序的
+            rwLock.writeLock().lock();
             levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
+            rwLock.writeLock().unlock();
         }
         //3.清空buffer，并重新插入
         memTable.clear();
@@ -206,7 +207,10 @@ public class LSMTree {
         //1.buffer中不存在，则在runs中查找，todo:这里可以多线程并发地找
         for (Level level : levels) {
             for (SSTable ssTable : level.getRuns()) {
-                if ((latestVal = ssTable.read(key)) != null)
+                rwLock.readLock().lock();
+                latestVal = ssTable.read(key);
+                rwLock.readLock().unlock();
+                if (latestVal != null)
                     return latestVal;
             }
         }
@@ -270,7 +274,9 @@ public class LSMTree {
                     manifestInfo.getBloomFilterInfos().get(idx)));
             while (!mergeOps.isDone()) {
                 KVEntry entry = mergeOps.next();
+                rwLock.writeLock().lock();
                 levels.get(nextLevel).getRuns().getFirst().write(entry.getKey(), entry.getValue());
+                rwLock.writeLock().unlock();
             }
         } catch (Exception e) {
             logger.error("内存映射文件错误" + e);

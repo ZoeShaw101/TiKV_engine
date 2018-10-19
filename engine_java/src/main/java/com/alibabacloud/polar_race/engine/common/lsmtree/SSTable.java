@@ -1,6 +1,7 @@
 package com.alibabacloud.polar_race.engine.common.lsmtree;
 
 import com.alibabacloud.polar_race.engine.common.utils.FileHelper;
+import com.alibabacloud.polar_race.engine.common.utils.Utils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -17,8 +18,8 @@ import java.util.*;
 public class SSTable {
     private Logger logger = Logger.getLogger(SSTable.class);
 
-    private long maxSize;
-    private long size;
+    private long maxSize;  //当前table最多的entry个数
+    private long size;  //当前table里的entry个数
     private byte[] maxKey;   //维护一个table内最大的key值
     private int tableIndex;
     private int levelIndex;
@@ -72,11 +73,12 @@ public class SSTable {
             }
             MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_WRITE, offset, mappingLength);
             buffer.put(mapping.toBytes());
-            if (maxKey.length == 0 || new String(maxKey).compareTo(new String(key)) < 0) {
+            if (maxKey.length == 0 || Utils.KeyComparator(maxKey, key, LSMTree.KEY_BYTE_SIZE) < 0) {
                 maxKey = key;
             }
-            size++;
-            logger.info("写入内存映射：key=" + new String(key) + ", value=" + new String(value));  //本地测试的时候key value都是String类型
+            size = offset / LSMTree.ENTRY_BYTE_SIZE + 1;
+            logger.info("数据写入内存映射文件offset=" + offset +": key=" + new String(key) + ", value=" + new String(value) +
+                    " ,当前table内的entry个数为size=" + size);
         } catch (Exception e) {
             logger.error("内存映射文件错误" + e);
         } finally {
@@ -103,26 +105,26 @@ public class SSTable {
             FileHelper.closeFile(file);
         }
         //todo: 这里顺序找效率低
-        for (int i = 0; i < LSMTree.BLOCK_SIZE / LSMTree.ENTRY_BYTE_SIZE; i += LSMTree.ENTRY_BYTE_SIZE) {
+        int entryNum = LSMTree.BLOCK_SIZE / LSMTree.ENTRY_BYTE_SIZE;
+        for (int i = 0, start = 0; i < entryNum; i++, start += LSMTree.ENTRY_BYTE_SIZE) {
             byte[] tmpKey = new byte[LSMTree.KEY_BYTE_SIZE];
-            int idx = 0, j = i;
-            for (; j < LSMTree.KEY_BYTE_SIZE; j++) {
-                tmpKey[idx++] = readBytes[j];
-            }
+            System.arraycopy(readBytes, start, tmpKey, 0, LSMTree.KEY_BYTE_SIZE);
             if (Arrays.equals(key, tmpKey)) {
                 val = new byte[LSMTree.VALUE_BYTE_SIZE];
-                System.arraycopy(readBytes, j, val, 0, LSMTree.VALUE_BYTE_SIZE);
+                System.arraycopy(readBytes, start + LSMTree.KEY_BYTE_SIZE, val, 0, LSMTree.VALUE_BYTE_SIZE);
                 break;
             }
         }
-        logger.info("从SSTable读出key=" + new String(key) + ", value=" + new String(val));
+        if (val != null) {
+            logger.info("从SSTable读出key=" + new String(key) + ", value=" + new String(val));
+        }
         return val;
     }
 
     private boolean checkKeyBound(byte[] key) {
-        if (maxKey != null && new String(key).compareTo(new String(maxKey)) > 0)
+        if (maxKey != null && Utils.KeyComparator(key, maxKey, LSMTree.KEY_BYTE_SIZE) > 0)
             return false;
-        if (new String(key).compareTo(new String(fencePointers.get(0))) < 0)
+        if (Utils.KeyComparator(key, fencePointers.get(0), LSMTree.KEY_BYTE_SIZE) < 0)
             return false;
         return true;
     }
@@ -134,7 +136,7 @@ public class SSTable {
         int begin = 0, end = fencePointers.size() - 1;
         while (begin < end) {
             int mid = begin + (end - begin) / 2;
-            if (new String(fencePointers.get(mid)).compareTo(new String(key)) < 0) {
+            if (Utils.KeyComparator(fencePointers.get(mid), key, LSMTree.KEY_BYTE_SIZE) < 0) {
                 begin = mid + 1;
             } else {
                 end = mid;

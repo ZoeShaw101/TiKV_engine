@@ -1,5 +1,6 @@
 package com.alibabacloud.polar_race.engine.common.lsmtree;
 
+import com.alibabacloud.polar_race.engine.common.utils.Utils;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;
@@ -43,7 +44,7 @@ public class MergeOps {
             if (a.head().equals(b.head())) {
                 return b.precedence - a.precedence;  //保证同一个的SSTable里相同key只保留最近写入的一个记录
             } else {
-                return new String(a.head().getKey()).compareTo(new String(a.head().getValue()));
+                return Utils.KeyComparator(a.head().getKey(), b.head().getKey(), LSMTree.KEY_BYTE_SIZE);
             }
         });
     }

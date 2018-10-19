@@ -7,11 +7,10 @@ import javafx.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -32,14 +31,6 @@ public class BenchMark {
 
     private static Random random = new Random();
 
-    public static Pair<byte[], byte[]> keyValueGenerator() {
-        byte[] key = new byte[8];
-        byte[] value = new byte[4000];
-        random.nextBytes(key);
-        random.nextBytes(value);
-        return new Pair<>(key, value);
-    }
-
     public static void SimpleTest() {
         EngineRace engineRace = new EngineRace();
         try {
@@ -47,22 +38,94 @@ public class BenchMark {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        byte[] k = new byte[4];  //
-        byte[] v = new byte[4096];
+        Map<byte[], byte[]> kvs = new HashMap<>();
+        byte[] k = new byte[8];  //
+        byte[] v = new byte[4000];
         Arrays.fill(k, (byte) 0x32);
-        Arrays.fill(v, (byte) 0x64);
-//        logger.info("准备写key=" + new String(k) + " ,value=" + new String(v));
-//        try {
-//            engineRace.write(k, v);
-//        } catch (Exception e) {
-//            e.printStackTrace();
+        Arrays.fill(v, (byte) 0x31);
+        kvs.put(k, v);
+        byte[] k1 = new byte[8];  //
+        byte[] v1 = new byte[4000];
+        Arrays.fill(k1, (byte) 0x38);
+        Arrays.fill(v1, (byte) 0x32);
+        kvs.put(k1, v1);
+        byte[] k2 = new byte[8];  //
+        byte[] v2 = new byte[4000];
+        Arrays.fill(k2, (byte) 0x34);
+        Arrays.fill(v2, (byte) 0x37);
+        kvs.put(k2, v2);
+        byte[] k3 = new byte[8];  //
+        byte[] v3 = new byte[4000];
+        Arrays.fill(k3, (byte) 0x39);
+        Arrays.fill(v3, (byte) 0x35);
+        kvs.put(k3, v3);
+        byte[] k4 = new byte[8];  //
+        byte[] v4 = new byte[4000];
+        Arrays.fill(k4, (byte) 0x36);
+        Arrays.fill(v4, (byte) 0x34);
+        kvs.put(k4, v4);
+//        for (byte[] key: kvs.keySet()) {
+//            logger.info("原本的key=" + new String(key) + " ,value=" + new String(kvs.get(key)));
+//            try {
+//                engineRace.write(key, kvs.get(key));
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
 //        }
+        for (byte[] key: kvs.keySet()) {
+            try {
+                byte[] value = engineRace.read(key);
+                if (value == null) logger.info("没找到value");
+                else if (!Arrays.equals(value, kvs.get(key))) {
+                    logger.info("读到的value不正确！读取到key=" + new String(key) + " ,value=" + new String(value));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        engineRace.close();
+    }
+
+    public static void SimpleBinarySearchTest() {
+        int entryNum = 500;
+        Map<byte[], byte[]> map = new HashMap<>();
+        byte[] tmpKey;
+        byte[] tmpValue;
+        for (int i = 0; i < entryNum; i++) {
+            tmpKey = new byte[8];
+            tmpValue = new byte[4000];
+            random.nextBytes(tmpKey);
+            random.nextBytes(tmpValue);
+            map.put(tmpKey, tmpValue);
+        }
+        EngineRace engineRace = new EngineRace();
         try {
-            byte[] value = engineRace.read(k);
-            logger.info("读取到key=" + new String(k) + ",value=" + new String(value));
+            engineRace.open(DB_PATH);
         } catch (Exception e) {
             e.printStackTrace();
         }
+//        for (byte[] key : map.keySet()) {
+//            try {
+//                engineRace.write(key, map.get(key));
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
+        int cnt = 0;
+        for (byte[] key : map.keySet()) {
+            try {
+                byte[] readVal = engineRace.read(key);
+                if (readVal == null) {
+                    logger.info("没找到value");
+                    cnt++;
+                } else if (!Arrays.equals(readVal, map.get(key))) {
+                    logger.info("查找出的value值错误");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        logger.info(cnt);
         engineRace.close();
     }
 
@@ -160,7 +223,10 @@ public class BenchMark {
     }
 
     public static void main(String[] args) throws Exception {
-        SimpleTest();
+
+        //SimpleTest();
+
+        SimpleBinarySearchTest();
 
         //ConcurrentTest1();
 
