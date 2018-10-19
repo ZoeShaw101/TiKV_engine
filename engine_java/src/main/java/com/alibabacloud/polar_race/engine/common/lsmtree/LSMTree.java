@@ -31,7 +31,7 @@ public class LSMTree {
     private Logger logger = Logger.getLogger(LSMTree.class);
 
     //系统参数，可用于调节性能
-    static final double BF_BITS_PER_ENTRY = 5;
+    static final double BF_BITS_PER_ENTRY = 0.5;
     static final int TREE_DEPTH = 5;
     static final int TREE_FANOUT = 10;  //每层level的sstable个数
     static final int BUFFER_NUM_BLOCKS = 1000;
@@ -41,6 +41,7 @@ public class LSMTree {
     static final int ENTRY_BYTE_SIZE = 4008;
     static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 200;  //每个SSTable的BLOCK大小
     static final int BUFFER_MAX_ENTRIES = BUFFER_NUM_BLOCKS * BLOCK_SIZE / ENTRY_BYTE_SIZE;  //最大页数 * 每页大小 ／ Entry大小
+    static final double FALSE_POSITIVE_PROBABILITY = 0.001;
 
     static final String DB_STORE_DIR = "/Users/shaw/lsmdb";
     private static final String MANIFEST_FILE_PATH = "/Users/shaw/lsmdb/manifest"; //记录当前level的sstable的maxKey bloomFilter fencePointer
@@ -151,10 +152,6 @@ public class LSMTree {
         FileHelper.writeObjectToFile(new KVEntry(key, value), LOG_FILE_PATH);
         //0.先看能不能插入buffer
         if (memTable.write(key, value)) {
-            //如果write成功了应该把此时的log删掉，但是万一此时正在写log呢？所以应该加锁
-            rwLock.writeLock().lock();
-            clearRedoLog();
-            rwLock.writeLock().unlock();
             return;
         }
         //todo: 应该放在后台线程，而不用阻塞put操作
@@ -197,6 +194,10 @@ public class LSMTree {
         }
         //3.清空buffer，并重新插入
         memTable.clear();
+        //如果write成功了应该把此时的log删掉，但是万一此时正在写log呢？所以应该加锁
+        rwLock.writeLock().lock();
+        clearRedoLog();
+        rwLock.writeLock().unlock();
     }
 
     public byte[] read(final byte[] key) {
@@ -292,6 +293,7 @@ public class LSMTree {
      * 1.将每个level的信息都保存到manifest文件中
      */
     public void close() {
+        logger.info("关闭系统");
         if (!memTable.isEmpty()) {
             mergeOps();
         }

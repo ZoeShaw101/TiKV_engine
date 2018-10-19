@@ -44,7 +44,7 @@ public class MergeOps {
             if (a.head().equals(b.head())) {
                 return b.precedence - a.precedence;  //保证同一个的SSTable里相同key只保留最近写入的一个记录
             } else {
-                return Utils.KeyComparator(a.head().getKey(), b.head().getKey(), LSMTree.KEY_BYTE_SIZE);
+                return Utils.KeyComparator(a.head().getKey(), b.head().getKey());
             }
         });
     }

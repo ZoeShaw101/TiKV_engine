@@ -3,27 +3,23 @@ package com.alibabacloud.polar_race.engine.common.lsmtree;
 import com.google.common.base.Charsets;
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
+import com.google.common.hash.Funnels;
 import com.google.common.hash.PrimitiveSink;
 
 import java.io.Serializable;
 
 public class GuavaBloomFilter implements Serializable {
-    private BloomFilter<String> bloomFilter;
+    private BloomFilter<byte[]> bloomFilter;
 
-    public GuavaBloomFilter() {
-        bloomFilter = BloomFilter.create(new Funnel<String>() {
-            @Override
-            public void funnel(String s, PrimitiveSink primitiveSink) {
-                primitiveSink.putString(s, Charsets.UTF_8);
-            }
-        }, 1000000, 0.001);
+    public GuavaBloomFilter(long expectedInsertions) {
+        bloomFilter = BloomFilter.create(Funnels.byteArrayFunnel(), expectedInsertions, LSMTree.FALSE_POSITIVE_PROBABILITY);
     }
 
     public void set(byte[] key) {
-        bloomFilter.put(new String(key));
+        bloomFilter.put(key);
     }
 
     public boolean isSet(byte[] key) {
-        return bloomFilter.mightContain(new String(key));
+        return bloomFilter.mightContain(key);
     }
 }

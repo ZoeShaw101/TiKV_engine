@@ -47,7 +47,7 @@ public class SSTable {
         if (bloomFilter != null)
             this.bloomFilter = bloomFilter;
         else
-            this.bloomFilter = new GuavaBloomFilter();
+            this.bloomFilter = new GuavaBloomFilter(maxSize);
 
         tableFilePath = LSMTree.DB_STORE_DIR + "/level" + levelIndex + "_table" + tableIndex + ".sst";
         if (!FileHelper.fileExists(tableFilePath)) {
@@ -73,7 +73,7 @@ public class SSTable {
             }
             MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_WRITE, offset, mappingLength);
             buffer.put(mapping.toBytes());
-            if (maxKey.length == 0 || Utils.KeyComparator(maxKey, key, LSMTree.KEY_BYTE_SIZE) < 0) {
+            if (maxKey.length == 0 || Utils.KeyComparator(maxKey, key) < 0) {
                 maxKey = key;
             }
             size = offset / LSMTree.ENTRY_BYTE_SIZE + 1;
@@ -122,9 +122,9 @@ public class SSTable {
     }
 
     private boolean checkKeyBound(byte[] key) {
-        if (maxKey != null && Utils.KeyComparator(key, maxKey, LSMTree.KEY_BYTE_SIZE) > 0)
+        if (maxKey != null && Utils.KeyComparator(key, maxKey) > 0)
             return false;
-        if (Utils.KeyComparator(key, fencePointers.get(0), LSMTree.KEY_BYTE_SIZE) < 0)
+        if (Utils.KeyComparator(key, fencePointers.get(0)) < 0)
             return false;
         return true;
     }
@@ -136,7 +136,7 @@ public class SSTable {
         int begin = 0, end = fencePointers.size() - 1;
         while (begin < end) {
             int mid = begin + (end - begin) / 2;
-            if (Utils.KeyComparator(fencePointers.get(mid), key, LSMTree.KEY_BYTE_SIZE) < 0) {
+            if (Utils.KeyComparator(fencePointers.get(mid), key) < 0) {
                 begin = mid + 1;
             } else {
                 end = mid;
