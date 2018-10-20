@@ -5,6 +5,10 @@ import javafx.util.Pair;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+
 
 /**
  * Level逻辑结构
@@ -14,6 +18,11 @@ public class Level {
     private int maxRuns;
     private long maxRunSize;
     private Deque<SSTable> runs;  //最近时间的插入到最前面，LRU
+
+    private ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
+    private WriteLock writeLock = readWriteLock.writeLock();
+    private ReadLock readLock = readWriteLock.readLock();
+
 
     public Level(int maxRuns, long maxRunSize) {
         this.maxRuns = maxRuns;
@@ -31,4 +40,11 @@ public class Level {
 
     public int getRemaining() {return maxRuns - runs.size();}
 
+    public WriteLock getWriteLock() {
+        return writeLock;
+    }
+
+    public ReadLock getReadLock() {
+        return readLock;
+    }
 }

@@ -34,14 +34,14 @@ public class LSMTree {
     static final double BF_BITS_PER_ENTRY = 0.5;
     static final int TREE_DEPTH = 5;
     static final int TREE_FANOUT = 10;  //每层level的sstable个数
-    static final int BUFFER_NUM_BLOCKS = 1000;
+    static final int BUFFER_NUM_BLOCKS = 5;
     static final int THREAD_COUNT = 4;
     static final int KEY_BYTE_SIZE = 8;  //4B
     static final int VALUE_BYTE_SIZE = 4000;   //4KB
     static final int ENTRY_BYTE_SIZE = 4008;
-    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 200;  //每个SSTable的BLOCK大小
-    static final int BUFFER_MAX_ENTRIES = BUFFER_NUM_BLOCKS * BLOCK_SIZE / ENTRY_BYTE_SIZE;  //最大页数 * 每页大小 ／ Entry大小
-    static final double FALSE_POSITIVE_PROBABILITY = 0.001;
+    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 100;  //每个SSTable的BLOCK大小
+    static final int BUFFER_MAX_ENTRIES = BUFFER_NUM_BLOCKS * BLOCK_SIZE / ENTRY_BYTE_SIZE;  //最大页数 * 每页大小 ／ Entry大小 => 500个entry
+    static final double FALSE_POSITIVE_PROBABILITY = 0.0001;
 
     static final String DB_STORE_DIR = "/Users/shaw/lsmdb";
     private static final String MANIFEST_FILE_PATH = "/Users/shaw/lsmdb/manifest"; //记录当前level的sstable的maxKey bloomFilter fencePointer
@@ -53,7 +53,7 @@ public class LSMTree {
     private ManifestInfo manifestInfo;
 
     //private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
-    private static ReadWriteLock rwLock = new ReentrantReadWriteLock();  //读写锁
+    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
     public LSMTree(String path) {
         memTable = new MemTable(BUFFER_MAX_ENTRIES);
@@ -175,25 +175,26 @@ public class LSMTree {
         //1.如果不能插入buffer，说明buffer已满，则看能不能将buffer刷到level 0上，先看需不需要进行归并操作
         mergeDown(0);
         //2.buffer刷到level 0上，如果当前sstable满了，则创建一个新的
-        if (levels.get(0).getRuns().size() == 0
-                || levels.get(0).getRuns().getFirst().getSize() >= levels.get(0).getRuns().getFirst().getMaxSize()) {
-            int idx = levels.get(0).getRuns().size();
-            levels.get(0).getRuns().addFirst(new SSTable(
-                    levels.get(0).getMaxRunSize(),
-                    BF_BITS_PER_ENTRY,
-                    levels.get(0).getRuns().size(),
-                    0,
-                    manifestInfo.getMaxKeyInfos().get(idx),
-                    manifestInfo.getFencePointerInfos().get(idx),
-                    manifestInfo.getBloomFilterInfos().get(idx)));
+        synchronized (this) {
+            if (levels.get(0).getRuns().size() == 0
+                    || levels.get(0).getRuns().getFirst().getSize() >= levels.get(0).getRuns().getFirst().getMaxSize()) {
+                int idx = levels.get(0).getRuns().size();
+                levels.get(0).getRuns().addFirst(new SSTable(
+                        levels.get(0).getMaxRunSize(),
+                        BF_BITS_PER_ENTRY,
+                        levels.get(0).getRuns().size(),
+                        0,
+                        manifestInfo.getMaxKeyInfos().get(idx),
+                        manifestInfo.getFencePointerInfos().get(idx),
+                        manifestInfo.getBloomFilterInfos().get(idx)));
+            }
+            final Map<byte[], byte[]> imutableMap = memTable.getEntries();
+            for (Map.Entry<byte[], byte[]> entry : imutableMap.entrySet()) {  //这个输出就是按顺序的
+                levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
+            }
+            //3.清空buffer，并重新插入
+            memTable.clear();
         }
-        for (Map.Entry<byte[], byte[]> entry : memTable.getEntries().entrySet()) {  //这个输出就是按顺序的
-            rwLock.writeLock().lock();
-            levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
-            rwLock.writeLock().unlock();
-        }
-        //3.清空buffer，并重新插入
-        memTable.clear();
         //如果write成功了应该把此时的log删掉，但是万一此时正在写log呢？所以应该加锁
         rwLock.writeLock().lock();
         clearRedoLog();
@@ -208,9 +209,7 @@ public class LSMTree {
         //1.buffer中不存在，则在runs中查找，todo:这里可以多线程并发地找
         for (Level level : levels) {
             for (SSTable ssTable : level.getRuns()) {
-                rwLock.readLock().lock();
                 latestVal = ssTable.read(key);
-                rwLock.readLock().unlock();
                 if (latestVal != null)
                     return latestVal;
             }
@@ -257,14 +256,17 @@ public class LSMTree {
         byte[] mapping = null;
         try {
             for (SSTable table : levels.get(currentLevel).getRuns()) {
+                rwLock.readLock().lock();
                 file = new RandomAccessFile(table.getTableFilePath(), "rw");
                 mapping = new byte[(int) table.getMaxSize() * ENTRY_BYTE_SIZE];
                 MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_ONLY,
                         0, table.getMaxSize() * LSMTree.ENTRY_BYTE_SIZE);
                 buffer.get(mapping);
                 mergeOps.add(mapping, table.getSize());
+                rwLock.readLock().unlock();
             }
             int idx = nextLevel * TREE_FANOUT + levels.get(nextLevel).getRuns().size();
+            levels.get(nextLevel).getWriteLock().lock();
             levels.get(nextLevel).getRuns().addFirst(new SSTable(
                     levels.get(nextLevel).getMaxRunSize(),
                     BF_BITS_PER_ENTRY,
@@ -273,11 +275,10 @@ public class LSMTree {
                     manifestInfo.getMaxKeyInfos().get(idx),
                     manifestInfo.getFencePointerInfos().get(idx),
                     manifestInfo.getBloomFilterInfos().get(idx)));
+            levels.get(nextLevel).getWriteLock().unlock();
             while (!mergeOps.isDone()) {
                 KVEntry entry = mergeOps.next();
-                rwLock.writeLock().lock();
                 levels.get(nextLevel).getRuns().getFirst().write(entry.getKey(), entry.getValue());
-                rwLock.writeLock().unlock();
             }
         } catch (Exception e) {
             logger.error("内存映射文件错误" + e);

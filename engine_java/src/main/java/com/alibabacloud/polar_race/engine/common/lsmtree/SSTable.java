@@ -9,6 +9,10 @@ import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * 使用NIO的内存映射文件来加速文件读写
@@ -19,7 +23,7 @@ public class SSTable {
     private Logger logger = Logger.getLogger(SSTable.class);
 
     private long maxSize;  //当前table最多的entry个数
-    private long size;  //当前table里的entry个数
+    private AtomicLong size = new AtomicLong(0);  //当前table里的entry个数
     private byte[] maxKey;   //维护一个table内最大的key值
     private int tableIndex;
     private int levelIndex;
@@ -29,12 +33,13 @@ public class SSTable {
     private GuavaBloomFilter bloomFilter;
     private List<byte[]> fencePointers;   //每个SSTbale的key指针，可以看成是block的稀疏索引
 
+    private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
+
     public SSTable(long maxSize, double BFbitPerEntry, int tableIndex, int levelIndex,
                    byte[] maxKey, List<byte[]> fencePointers, GuavaBloomFilter bloomFilter) {
         this.maxSize = maxSize;
         this.tableIndex = tableIndex;
         this.levelIndex = levelIndex;
-        this.size = 0;
         //bloomFilter = new BloomFilter((long) (maxSize * BFbitPerEntry));
         if (maxKey != null)
             this.maxKey = maxKey;
@@ -59,8 +64,12 @@ public class SSTable {
         }
     }
 
-    public void write(byte[] key, byte[] value) {
-        assert size < maxSize;
+    public boolean write(byte[] key, byte[] value) {
+        if( size.get() >= maxSize) {
+            logger.info("level=" + levelIndex + ", table=" + tableIndex + " 已超过最大长度限制");
+            return false;
+        }
+        readWriteLock.writeLock().lock();
         bloomFilter.set(key);
         RandomAccessFile file = null;
         KVEntry mapping = new KVEntry(key, value);
@@ -76,18 +85,21 @@ public class SSTable {
             if (maxKey.length == 0 || Utils.KeyComparator(maxKey, key) < 0) {
                 maxKey = key;
             }
-            size = offset / LSMTree.ENTRY_BYTE_SIZE + 1;
-            logger.info("数据写入内存映射文件offset=" + offset +": key=" + new String(key) + ", value=" + new String(value) +
-                    " ,当前table内的entry个数为size=" + size);
+            size.getAndIncrement();
+            logger.info("数据写入内存映射文件level = " + levelIndex +  ", table=" + tableIndex +
+                    ", offset=" + offset +": key=" + new String(key) + " ,当前table内的entry个数为size=" + size);
         } catch (Exception e) {
             logger.error("内存映射文件错误" + e);
         } finally {
             FileHelper.closeFile(file);
+            readWriteLock.writeLock().unlock();
         }
+        return true;
     }
 
     public byte[] read(byte[] key) {
         byte[] val = null;
+        readWriteLock.readLock().lock();
         if (!bloomFilter.isSet(key) || !checkKeyBound(key)) {
             return val;
         }
@@ -103,11 +115,12 @@ public class SSTable {
             logger.error("读取SSTable出错" + e);
         } finally {
             FileHelper.closeFile(file);
+            readWriteLock.readLock().unlock();
         }
-        //todo: 这里顺序找效率低
+        //todo: 这里顺序找效率低 => 也可以变为二分
+        byte[] tmpKey = new byte[LSMTree.KEY_BYTE_SIZE];
         int entryNum = LSMTree.BLOCK_SIZE / LSMTree.ENTRY_BYTE_SIZE;
         for (int i = 0, start = 0; i < entryNum; i++, start += LSMTree.ENTRY_BYTE_SIZE) {
-            byte[] tmpKey = new byte[LSMTree.KEY_BYTE_SIZE];
             System.arraycopy(readBytes, start, tmpKey, 0, LSMTree.KEY_BYTE_SIZE);
             if (Arrays.equals(key, tmpKey)) {
                 val = new byte[LSMTree.VALUE_BYTE_SIZE];
@@ -122,7 +135,7 @@ public class SSTable {
     }
 
     private boolean checkKeyBound(byte[] key) {
-        if (maxKey != null && Utils.KeyComparator(key, maxKey) > 0)
+        if (maxKey.length != 0 && Utils.KeyComparator(key, maxKey) > 0)
             return false;
         if (Utils.KeyComparator(key, fencePointers.get(0)) < 0)
             return false;
@@ -133,10 +146,10 @@ public class SSTable {
      * 二分查找，在SSTable中内找到最后一个大于当前key的block index
      */
     private int findUpperBound(byte[] key) {
-        int begin = 0, end = fencePointers.size() - 1;
+        int begin = 0, end = fencePointers.size();
         while (begin < end) {
-            int mid = begin + (end - begin) / 2;
-            if (Utils.KeyComparator(fencePointers.get(mid), key) < 0) {
+            final int mid = begin + (end - begin) / 2;
+            if (Utils.KeyComparator(fencePointers.get(mid), key) <= 0) {
                 begin = mid + 1;
             } else {
                 end = mid;
@@ -158,7 +171,7 @@ public class SSTable {
     }
 
     public long getSize() {
-        return size;
+        return size.get();
     }
 
     public int getTableIndex() {
