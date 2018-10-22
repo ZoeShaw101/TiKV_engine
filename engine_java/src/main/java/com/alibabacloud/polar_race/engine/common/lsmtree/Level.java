@@ -1,11 +1,11 @@
 package com.alibabacloud.polar_race.engine.common.lsmtree;
 
-import javafx.util.Pair;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -18,7 +18,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 public class Level {
     private int maxRuns;
     private long maxRunSize;
-    private Deque<SSTable> runs;  //最近时间的插入到最前面，LRU
+    private BlockingDeque<SSTable> runs;  //最近时间的插入到最前面，LRU
 
     private ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
     private WriteLock writeLock = readWriteLock.writeLock();
@@ -28,7 +28,7 @@ public class Level {
     public Level(int maxRuns, long maxRunSize) {
         this.maxRuns = maxRuns;
         this.maxRunSize = maxRunSize;
-        runs = new ArrayDeque<>();
+        runs = new LinkedBlockingDeque<>();
     }
 
     public Deque<SSTable> getRuns() {

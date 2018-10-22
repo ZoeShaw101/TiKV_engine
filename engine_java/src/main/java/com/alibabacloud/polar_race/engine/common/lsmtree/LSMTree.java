@@ -57,6 +57,7 @@ public class LSMTree {
 
     //private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock(true);
+    private final DaemonThreadFactory threadFactory = new DaemonThreadFactory("merge");
 
     public LSMTree(String path) {
         memTable = new MemTable(BUFFER_MAX_ENTRIES);
@@ -157,14 +158,20 @@ public class LSMTree {
         if (memTable.write(key, value)) {
             return;
         }
-        //todo: 应该放在后台线程，而不用阻塞put操作
         mergeOps();
         assert memTable.write(key, value);
     }
 
     private void mergeOps() {
         //1.如果不能插入buffer，说明buffer已满，则看能不能将buffer刷到level 0上，先看需不需要进行归并操作
-        mergeDown(0);
+        //应该放在后台线程，而不用阻塞put操作
+        threadFactory.newThread(new Runnable() {
+            @Override
+            public void run() {
+                mergeDown(0);
+            }
+        }).start();
+        //mergeDown(0);
         //2.buffer刷到level 0上，如果当前sstable满了，则创建一个新的
         synchronized (this) {
             if (levels.get(0).getRuns().size() == 0 ||

@@ -6,6 +6,9 @@ import org.apache.log4j.Logger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 
 /**
  * 归并排序
@@ -14,7 +17,7 @@ import java.util.PriorityQueue;
 public class MergeOps {
     private Logger logger = Logger.getLogger(MergeOps.class);
 
-    class MergeEntry {
+    class MergeEntry implements Comparable<MergeEntry> {
         byte[] mapping;
         int precedence;
         long currentIndex;
@@ -27,7 +30,6 @@ public class MergeOps {
             currentIndex = 0;
         }
 
-        //todo: 这种数组直接拷贝的方式是否比较低效
         KVEntry head() {
             return new KVEntry(Arrays.copyOfRange(mapping, (int) currentIndex, (int) currentIndex + LSMTree.KEY_BYTE_SIZE),
                     Arrays.copyOfRange(mapping, (int) currentIndex + LSMTree.KEY_BYTE_SIZE,
@@ -35,18 +37,21 @@ public class MergeOps {
         }
 
         boolean isDone() {return currentIndex == entryNum;}
+
+        @Override
+        public int compareTo(MergeEntry o) {
+            if (this.head().equals(o.head())) {
+                return this.precedence - o.precedence;  //保证同一个的SSTable里相同key只保留最近写入的一个记录
+            } else {
+                return Utils.KeyComparator(this.head().getKey(), o.head().getKey());
+            }
+        }
     }
 
-    private PriorityQueue<MergeEntry> priorityQueue;
+    private BlockingQueue<MergeEntry> priorityQueue;
 
     public MergeOps() {
-        this.priorityQueue = new PriorityQueue<>((a, b) -> {
-            if (a.head().equals(b.head())) {
-                return b.precedence - a.precedence;  //保证同一个的SSTable里相同key只保留最近写入的一个记录
-            } else {
-                return Utils.KeyComparator(a.head().getKey(), b.head().getKey());
-            }
-        });
+        this.priorityQueue = new PriorityBlockingQueue<>();
     }
 
     public List<SSTable> merge() {
