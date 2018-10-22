@@ -5,6 +5,7 @@ import javafx.util.Pair;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -38,7 +39,10 @@ public class Level {
         return maxRunSize;
     }
 
-    public int getRemaining() {return maxRuns - runs.size();}
+    public boolean hasRemaining() {
+        //条件应该是当前层还有空的table或者还有table没写满
+        return maxRuns > runs.size() || runs.getFirst().getSize() < runs.getFirst().getMaxSize();
+    }
 
     public WriteLock getWriteLock() {
         return writeLock;

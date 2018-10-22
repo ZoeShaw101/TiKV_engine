@@ -1,5 +1,8 @@
 package com.alibabacloud.polar_race.engine.common.lsmtree;
 
+import com.alibabacloud.polar_race.engine.common.concurrent.DaemonThreadFactory;
+import com.alibabacloud.polar_race.engine.common.exceptions.EngineException;
+import com.alibabacloud.polar_race.engine.common.exceptions.RetCodeEnum;
 import com.alibabacloud.polar_race.engine.common.utils.FileHelper;
 import com.alibabacloud.polar_race.engine.common.utils.Serialization;
 import com.alibabacloud.polar_race.engine.common.wal.RedoLog;
@@ -33,7 +36,7 @@ public class LSMTree {
     //系统参数，可用于调节性能
     static final double BF_BITS_PER_ENTRY = 0.5;
     static final int TREE_DEPTH = 5;
-    static final int TREE_FANOUT = 10;  //每层level的sstable个数
+    static final int TREE_FANOUT = 2;  //每层level的sstable个数
     static final int BUFFER_NUM_BLOCKS = 5;
     static final int THREAD_COUNT = 4;
     static final int KEY_BYTE_SIZE = 8;  //4B
@@ -159,25 +162,13 @@ public class LSMTree {
         assert memTable.write(key, value);
     }
 
-    private void clearRedoLog() {
-        File file = new File(LOG_FILE_PATH);
-        try {
-            FileWriter fileWriter = new FileWriter(file);
-            fileWriter.write("");
-            fileWriter.flush();
-        } catch (Exception e) {
-            logger.error("删除redoLog文件失败！");
-        }
-    }
-
-
     private void mergeOps() {
         //1.如果不能插入buffer，说明buffer已满，则看能不能将buffer刷到level 0上，先看需不需要进行归并操作
         mergeDown(0);
         //2.buffer刷到level 0上，如果当前sstable满了，则创建一个新的
         synchronized (this) {
-            if (levels.get(0).getRuns().size() == 0
-                    || levels.get(0).getRuns().getFirst().getSize() >= levels.get(0).getRuns().getFirst().getMaxSize()) {
+            if (levels.get(0).getRuns().size() == 0 ||
+                    levels.get(0).getRuns().getFirst().getSize() >= levels.get(0).getRuns().getFirst().getMaxSize()) {
                 int idx = levels.get(0).getRuns().size();
                 levels.get(0).getRuns().addFirst(new SSTable(
                         levels.get(0).getMaxRunSize(),
@@ -190,14 +181,28 @@ public class LSMTree {
             }
             final Map<byte[], byte[]> imutableMap = memTable.getEntries();
             for (Map.Entry<byte[], byte[]> entry : imutableMap.entrySet()) {  //这个输出就是按顺序的
-                levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
+                boolean success = levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
+
+                if (!success) {
+                    mergeDown(0);
+                    int idx = levels.get(0).getRuns().size();
+                    levels.get(0).getRuns().addFirst(new SSTable(
+                            levels.get(0).getMaxRunSize(),
+                            BF_BITS_PER_ENTRY,
+                            levels.get(0).getRuns().size(),
+                            0,
+                            manifestInfo.getMaxKeyInfos().get(idx),
+                            manifestInfo.getFencePointerInfos().get(idx),
+                            manifestInfo.getBloomFilterInfos().get(idx)));
+                    levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
+                }
             }
             //3.清空buffer，并重新插入
             memTable.clear();
         }
         //如果write成功了应该把此时的log删掉，但是万一此时正在写log呢？所以应该加锁
         rwLock.writeLock().lock();
-        clearRedoLog();
+        FileHelper.clearFileContent(LOG_FILE_PATH);
         rwLock.writeLock().unlock();
     }
 
@@ -235,9 +240,9 @@ public class LSMTree {
     /**
      * 自上而下进行merge操作
      */
-    private void mergeDown(int currentLevel) {
+    private synchronized void mergeDown(int currentLevel) {
         int nextLevel;
-        if (levels.get(currentLevel).getRemaining() > 0) {
+        if (levels.get(currentLevel).hasRemaining()) {
             return;
         } else if (currentLevel >= levels.size()) {
             logger.info("已经到达最后一层，没有多余的空间了");
@@ -246,9 +251,9 @@ public class LSMTree {
             nextLevel = currentLevel + 1;
         }
         //如果下一层的还有没有剩余空间，那么还要递归下一层
-        if (levels.get(nextLevel).getRemaining() == 0) {
+        if (!levels.get(nextLevel).hasRemaining()) {
             mergeDown(nextLevel);
-            assert levels.get(nextLevel).getRemaining() > 0;
+            //assert levels.get(nextLevel).getRemaining() > 0;
         }
         //找到下一层是空闲的，则在把当前层所有的SSTable都归并，并放入下一层的第一个SSTable，然后清空当前层
         MergeOps mergeOps = new MergeOps();
@@ -281,10 +286,16 @@ public class LSMTree {
                 levels.get(nextLevel).getRuns().getFirst().write(entry.getKey(), entry.getValue());
             }
         } catch (Exception e) {
-            logger.error("内存映射文件错误" + e);
+            //logger.error("merge内存映射文件错误" + e);
+            e.printStackTrace();
         } finally {
             FileHelper.closeFile(file);
         }
+        rwLock.writeLock().lock();
+        for (SSTable table : levels.get(currentLevel).getRuns()) {
+            FileHelper.clearFileContent(table.getTableFilePath());
+        }
+        rwLock.writeLock().unlock();
         levels.get(currentLevel).getRuns().clear();
     }
 

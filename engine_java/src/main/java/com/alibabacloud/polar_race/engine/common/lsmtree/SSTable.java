@@ -66,7 +66,7 @@ public class SSTable {
 
     public boolean write(byte[] key, byte[] value) {
         if( size.get() >= maxSize) {
-            logger.info("level=" + levelIndex + ", table=" + tableIndex + " 已超过最大长度限制");
+            logger.error("level=" + levelIndex + ", table=" + tableIndex + " 已超过最大长度限制");
             return false;
         }
         readWriteLock.writeLock().lock();
@@ -86,7 +86,7 @@ public class SSTable {
                 maxKey = key;
             }
             size.getAndIncrement();
-            logger.info("数据写入内存映射文件level = " + levelIndex +  ", table=" + tableIndex +
+            logger.info("数据写入内存映射文件level=" + levelIndex +  ", table=" + tableIndex +
                     ", offset=" + offset +": key=" + new String(key) + " ,当前table内的entry个数为size=" + size);
         } catch (Exception e) {
             logger.error("内存映射文件错误" + e);

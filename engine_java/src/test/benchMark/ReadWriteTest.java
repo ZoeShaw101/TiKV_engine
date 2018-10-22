@@ -17,8 +17,8 @@ public class ReadWriteTest {
     private static Logger logger = Logger.getLogger(BenchMark.class);
 
     private final static String DB_PATH = "/Users/shaw/lsmdb";  //数据库目录
-    private final static int THREAD_NUM = 8;
-    private final static int ENTRY_NUM = 200;
+    private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
+    private final static int ENTRY_NUM = 300;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
     private static EngineRace engineRace = new EngineRace();
@@ -55,13 +55,6 @@ public class ReadWriteTest {
     }
 
     private static void write() {
-        /*for (byte[] key : kvs.keySet()) {
-            try {
-                engineRace.write(key, kvs.get(key));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }*/
         try {
             for (int j = 0; j < ENTRY_NUM; j++) {
                 byte[] key = TestUtil.randomString(8).getBytes();
@@ -93,7 +86,7 @@ public class ReadWriteTest {
     }
 
     public static void main(String[] args) {
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
         try {
             engineRace.open(DB_PATH);
         } catch (Exception e) {
@@ -105,9 +98,9 @@ public class ReadWriteTest {
 //        write();
         concurrentWrite();
         engineRace.close();
-        long cost = System.currentTimeMillis() - start;
+        long cost = System.nanoTime() - start;
         System.out.println("=====================================");
-        System.out.println("cost=" + cost + "ms, iops=" + (1000 * THREAD_NUM * ENTRY_NUM) / cost + ", 吞吐量=" + 1000 * byteNum.get() / cost );
+        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost + ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
         System.out.println("=====================================");
 
 //        try {

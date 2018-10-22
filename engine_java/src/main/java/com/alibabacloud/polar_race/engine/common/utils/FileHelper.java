@@ -34,6 +34,18 @@ public class FileHelper {
         }
     }
 
+    public static void clearFileContent(String filePath) {
+        File file = new File(filePath);
+        try {
+            FileWriter fileWriter = new FileWriter(file);
+            fileWriter.write("");
+            fileWriter.flush();
+            //logger.info("清空文件：" + filePath);
+        } catch (Exception e) {
+            logger.error("删除redoLog文件失败！");
+        }
+    }
+
     public static void createDir(String path) throws EngineException{
         File file = new File(path);
         if (!file.mkdirs()) {

@@ -61,7 +61,8 @@ public class MergeOps {
     public KVEntry next() {
         MergeEntry current, next;
         current = priorityQueue.peek();
-        next = current;
+        next = new MergeEntry(current.mapping, current.precedence, current.entryNum);
+        next.currentIndex = current.currentIndex;
         //保证同一个的SSTable里相同key只保留最近写入的一个记录
         while ((Arrays.equals(next.head().getKey(), current.head().getKey())) && !priorityQueue.isEmpty()) {
             priorityQueue.poll();
@@ -69,7 +70,7 @@ public class MergeOps {
             if (!next.isDone()) priorityQueue.add(next);
             next = priorityQueue.peek();
         }
-        return current.head();
+        return current.head();  //返回的是这段的mapping的头一个head
     }
 
     public boolean isDone() {
