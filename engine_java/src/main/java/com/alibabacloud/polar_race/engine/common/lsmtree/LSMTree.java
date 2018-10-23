@@ -16,6 +16,7 @@ import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -37,12 +38,12 @@ public class LSMTree {
     static final double BF_BITS_PER_ENTRY = 0.5;
     static final int TREE_DEPTH = 5;
     static final int TREE_FANOUT = 2;  //每层level的sstable个数
-    static final int BUFFER_NUM_BLOCKS = 5;
+    static final int BUFFER_NUM_BLOCKS = 2;
     static final int THREAD_COUNT = 4;
     static final int KEY_BYTE_SIZE = 8;  //4B
     static final int VALUE_BYTE_SIZE = 4000;   //4KB
     static final int ENTRY_BYTE_SIZE = 4008;
-    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 100;  //每个SSTable的BLOCK大小
+    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 10;  //每个SSTable的BLOCK大小
     static final int BUFFER_MAX_ENTRIES = BUFFER_NUM_BLOCKS * BLOCK_SIZE / ENTRY_BYTE_SIZE;  //最大页数 * 每页大小 ／ Entry大小 => 500个entry
     static final double FALSE_POSITIVE_PROBABILITY = 0.0001;
 
@@ -58,6 +59,7 @@ public class LSMTree {
     //private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock(true);
     private final DaemonThreadFactory threadFactory = new DaemonThreadFactory("merge");
+    private final AtomicInteger count = new AtomicInteger(0);
 
     public LSMTree(String path) {
         memTable = new MemTable(BUFFER_MAX_ENTRIES);
@@ -159,7 +161,7 @@ public class LSMTree {
             return;
         }
         mergeOps();
-        assert memTable.write(key, value);
+        write(key, value);
     }
 
     private void mergeOps() {
@@ -175,7 +177,7 @@ public class LSMTree {
         //2.buffer刷到level 0上，如果当前sstable满了，则创建一个新的
         synchronized (this) {
             if (levels.get(0).getRuns().size() == 0 ||
-                    levels.get(0).getRuns().getFirst().getSize() >= levels.get(0).getRuns().getFirst().getMaxSize()) {
+                    levels.get(0).getRuns().getFirst().getSize() == levels.get(0).getRuns().getFirst().getMaxSize()) {
                 int idx = levels.get(0).getRuns().size();
                 levels.get(0).getRuns().addFirst(new SSTable(
                         levels.get(0).getMaxRunSize(),
@@ -186,10 +188,10 @@ public class LSMTree {
                         manifestInfo.getFencePointerInfos().get(idx),
                         manifestInfo.getBloomFilterInfos().get(idx)));
             }
-            final Map<byte[], byte[]> imutableMap = memTable.getEntries();
+            final Map<byte[], byte[]> imutableMap = memTable.getEntries();  //应该执行深拷贝，得到不变的memtable
+
             for (Map.Entry<byte[], byte[]> entry : imutableMap.entrySet()) {  //这个输出就是按顺序的
                 boolean success = levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
-
                 if (!success) {
                     mergeDown(0);
                     int idx = levels.get(0).getRuns().size();
@@ -312,7 +314,6 @@ public class LSMTree {
      * 1.将每个level的信息都保存到manifest文件中
      */
     public void close() {
-        logger.info("关闭系统");
         if (!memTable.isEmpty()) {
             mergeOps();
         }
@@ -335,7 +336,10 @@ public class LSMTree {
             logger.info("写manifest文件出错" + e);
         } finally {
             FileHelper.closeFile(file);
+            logger.info("关闭系统");
         }
+        //todo:这里还需要等待所有后台线程执行完毕才正式关闭系统
+
     }
 
 }

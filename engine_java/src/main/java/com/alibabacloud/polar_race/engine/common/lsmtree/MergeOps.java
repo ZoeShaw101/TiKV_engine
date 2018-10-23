@@ -1,12 +1,10 @@
 package com.alibabacloud.polar_race.engine.common.lsmtree;
 
-import com.alibabacloud.polar_race.engine.common.utils.Utils;
+import com.alibabacloud.polar_race.engine.common.utils.BytesUtil;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.PriorityQueue;
-import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
@@ -43,7 +41,7 @@ public class MergeOps {
             if (this.head().equals(o.head())) {
                 return this.precedence - o.precedence;  //保证同一个的SSTable里相同key只保留最近写入的一个记录
             } else {
-                return Utils.KeyComparator(this.head().getKey(), o.head().getKey());
+                return BytesUtil.KeyComparator(this.head().getKey(), o.head().getKey());
             }
         }
     }
@@ -73,6 +71,7 @@ public class MergeOps {
             priorityQueue.poll();
             next.currentIndex++;
             if (!next.isDone()) priorityQueue.add(next);
+            if (priorityQueue.isEmpty()) break;
             next = priorityQueue.peek();
         }
         return current.head();  //返回的是这段的mapping的头一个head

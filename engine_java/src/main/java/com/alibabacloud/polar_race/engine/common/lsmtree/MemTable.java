@@ -1,5 +1,7 @@
 package com.alibabacloud.polar_race.engine.common.lsmtree;
 
+import org.apache.log4j.Logger;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -8,7 +10,9 @@ import java.util.concurrent.ConcurrentSkipListMap;
  *
  */
 
-public class MemTable {
+public class MemTable implements Cloneable {
+    private Logger logger = Logger.getLogger(MemTable.class);
+
     private static int MAX_SIZE;
     private Map<byte[], byte[]> entries;
 
@@ -22,6 +26,7 @@ public class MemTable {
             return false;
         }
         entries.put(key, val);
+        logger.info("数据写入内存表key=" + new String(key) + ", memtable.size=" + entries.size());
         return true;
     }
 
@@ -41,5 +46,17 @@ public class MemTable {
 
     public void clear() {
         entries.clear();
+    }
+
+    @Override
+    public MemTable clone() {
+        try {
+            MemTable table = (MemTable) super.clone();
+            table.entries = ((ConcurrentSkipListMap<byte[], byte[]>) this.entries).clone();
+            return table;
+        } catch (CloneNotSupportedException e) {
+            logger.error("克隆对象出错！");
+        }
+        return null;
     }
 }

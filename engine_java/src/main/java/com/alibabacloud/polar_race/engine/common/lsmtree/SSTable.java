@@ -1,17 +1,14 @@
 package com.alibabacloud.polar_race.engine.common.lsmtree;
 
 import com.alibabacloud.polar_race.engine.common.utils.FileHelper;
-import com.alibabacloud.polar_race.engine.common.utils.Utils;
+import com.alibabacloud.polar_race.engine.common.utils.BytesUtil;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -82,7 +79,7 @@ public class SSTable {
             }
             MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_WRITE, offset, mappingLength);
             buffer.put(mapping.toBytes());
-            if (maxKey.length == 0 || Utils.KeyComparator(maxKey, key) < 0) {
+            if (maxKey.length == 0 || BytesUtil.KeyComparator(maxKey, key) < 0) {
                 maxKey = key;
             }
             size.getAndIncrement();
@@ -135,9 +132,9 @@ public class SSTable {
     }
 
     private boolean checkKeyBound(byte[] key) {
-        if (maxKey.length != 0 && Utils.KeyComparator(key, maxKey) > 0)
+        if (maxKey.length != 0 && BytesUtil.KeyComparator(key, maxKey) > 0)
             return false;
-        if (Utils.KeyComparator(key, fencePointers.get(0)) < 0)
+        if (BytesUtil.KeyComparator(key, fencePointers.get(0)) < 0)
             return false;
         return true;
     }
@@ -149,7 +146,7 @@ public class SSTable {
         int begin = 0, end = fencePointers.size();
         while (begin < end) {
             final int mid = begin + (end - begin) / 2;
-            if (Utils.KeyComparator(fencePointers.get(mid), key) <= 0) {
+            if (BytesUtil.KeyComparator(fencePointers.get(mid), key) <= 0) {
                 begin = mid + 1;
             } else {
                 end = mid;
