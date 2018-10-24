@@ -16,9 +16,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ReadWriteTest {
     private static Logger logger = Logger.getLogger(BenchMark.class);
 
-    private final static String DB_PATH = "/Users/shaw/lsmdb";  //数据库目录
+    private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
     private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
-    private final static int ENTRY_NUM = 10;
+    private final static int ENTRY_NUM = 100;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
     private static EngineRace engineRace = new EngineRace();
@@ -56,11 +56,14 @@ public class ReadWriteTest {
 
     private static void write() {
         try {
-            for (int j = 0; j < ENTRY_NUM; j++) {
+            /*for (int j = 0; j < ENTRY_NUM; j++) {
                 byte[] key = TestUtil.randomString(8).getBytes();
                 byte[] value = TestUtil.randomString(4000).getBytes();
                 engineRace.write(key, value);
                 byteNum.getAndAdd(4008);
+            }*/
+            for (byte[] key : kvs.keySet()) {
+                engineRace.write(key, kvs.get(key));
             }
         } catch (Exception e) {
             logger.error(e);
@@ -73,13 +76,16 @@ public class ReadWriteTest {
             try {
                 byte[] readVal = engineRace.read(key);
                 if (readVal == null) {
-                    logger.error("没找到key=" + new String(key) + ", value=" + new String(kvs.get(key)));
+                    logger.error("没找到key=" + new String(key));
                     cnt++;
                 } else if (!Arrays.equals(readVal, kvs.get(key))) {
                     logger.info("查找出的value值错误");
+                } else {
+                    logger.info("找到key=" + new String(key));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+                logger.error(e);
             }
         }
         logger.info("没找到value的个数：" + cnt);
@@ -98,10 +104,13 @@ public class ReadWriteTest {
 //        write();
         concurrentWrite();
         engineRace.close();
+
         long cost = System.nanoTime() - start;
         System.out.println("=====================================");
-        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost + ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
+        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost +
+                ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
         System.out.println("=====================================");
+
 
 //        try {
 //            engineRace.open(DB_PATH);
