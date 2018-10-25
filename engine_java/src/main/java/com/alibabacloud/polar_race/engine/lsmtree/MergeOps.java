@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
@@ -34,22 +35,22 @@ public class MergeOps {
                             (int) currentIndex + LSMTree.KEY_BYTE_SIZE + LSMTree.VALUE_BYTE_SIZE));
         }
 
-        boolean isDone() {return currentIndex == entryNum;}
+        boolean isDone() {return (currentIndex / LSMTree.ENTRY_BYTE_SIZE) == entryNum;}
 
         @Override
         public int compareTo(MergeEntry o) {
             if (this.head().equals(o.head())) {
-                return this.precedence - o.precedence;  //保证同一个的SSTable里相同key只保留最近写入的一个记录
+                return o.precedence - this.precedence;  //保证同一个的SSTable里相同key只保留最近写入的一个记录
             } else {
                 return BytesUtil.KeyComparator(this.head().getKey(), o.head().getKey());
             }
         }
     }
 
-    private BlockingQueue<MergeEntry> priorityQueue;
+    private PriorityQueue<MergeEntry> priorityQueue;
 
     public MergeOps() {
-        this.priorityQueue = new PriorityBlockingQueue<>();
+        this.priorityQueue = new PriorityQueue<>();
     }
 
     public List<SSTable> merge() {
@@ -62,6 +63,18 @@ public class MergeOps {
     }
 
     public KVEntry next() {
+        /*MergeEntry current;
+        current = priorityQueue.peek();
+        KVEntry ret = current.head();
+        if (!current.isDone()) {
+            current.currentIndex += LSMTree.ENTRY_BYTE_SIZE;
+            priorityQueue.poll();
+            priorityQueue.offer(current);
+        } else {
+            priorityQueue.poll();
+        }
+        return ret;*/
+
         MergeEntry current, next;
         current = priorityQueue.peek();
         next = new MergeEntry(current.mapping, current.precedence, current.entryNum);
@@ -69,12 +82,13 @@ public class MergeOps {
         //保证同一个的SSTable里相同key只保留最近写入的一个记录
         while ((Arrays.equals(next.head().getKey(), current.head().getKey())) && !priorityQueue.isEmpty()) {
             priorityQueue.poll();
-            next.currentIndex++;
+            next.currentIndex += LSMTree.ENTRY_BYTE_SIZE;
             if (!next.isDone()) priorityQueue.add(next);
             if (priorityQueue.isEmpty()) break;
             next = priorityQueue.peek();
         }
         return current.head();  //返回的是这段的mapping的头一个head
+
     }
 
     public boolean isDone() {
