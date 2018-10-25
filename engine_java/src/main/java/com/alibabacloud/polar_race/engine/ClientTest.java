@@ -1,10 +1,10 @@
-package benchMark;
+package com.alibabacloud.polar_race.engine;
 
 import com.alibabacloud.polar_race.engine.common.EngineRace;
+import com.alibabacloud.polar_race.engine.utils.TestUtil;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -12,13 +12,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
+public class ClientTest {
+    private static Logger logger = Logger.getLogger(ClientTest.class);
 
-public class ReadWriteTest {
-    private static Logger logger = Logger.getLogger(BenchMark.class);
-
-    private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
+    private final static String DB_PATH = "/home/wangxiaoxiao/shawdb";  //数据库目录
     private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
-    private final static int ENTRY_NUM = 10;
+    private final static int ENTRY_NUM = 100;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
     private static EngineRace engineRace = new EngineRace();
@@ -105,11 +104,11 @@ public class ReadWriteTest {
         concurrentWrite();
         engineRace.close();
 
-//        long cost = System.nanoTime() - start;
-//        System.out.println("=====================================");
-//        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost +
-//                ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
-//        System.out.println("=====================================");
+        long cost = System.nanoTime() - start;
+        System.out.println("=====================================");
+        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost +
+                ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
+        System.out.println("=====================================");
 
 
 //        try {

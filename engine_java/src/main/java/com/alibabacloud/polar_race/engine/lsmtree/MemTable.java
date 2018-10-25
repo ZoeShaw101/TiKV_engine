@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
  *
  */
 
-public class MemTable implements Cloneable {
+public class MemTable extends AbstractTable implements Cloneable {
     private Logger logger = Logger.getLogger(MemTable.class);
 
     private static int MAX_SIZE;
@@ -21,7 +21,7 @@ public class MemTable implements Cloneable {
         entries = new ConcurrentSkipListMap<>((k1, k2) -> new String(k1).compareTo(new String(k2)));  //按key的大小升序
     }
 
-    public boolean write(byte[] key, byte[] val) {
+    public boolean put(byte[] key, byte[] val) {
         if (entries.size() >= MAX_SIZE) {
             return false;
         }
@@ -30,7 +30,7 @@ public class MemTable implements Cloneable {
         return true;
     }
 
-    public byte[] read(byte[] key) {
+    public byte[] get(byte[] key) {
         if (entries.containsKey(key))
             return entries.get(key);
         return null;

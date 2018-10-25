@@ -8,6 +8,7 @@ import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -16,7 +17,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  */
 
-public class SSTable {
+public class SSTable extends AbstractTable {
     private Logger logger = Logger.getLogger(SSTable.class);
 
     private long maxSize;  //当前table最多的entry个数
@@ -26,7 +27,6 @@ public class SSTable {
     private int levelIndex;
     private String tableFilePath;
 
-    //private BloomFilter bloomFilter;
     private GuavaBloomFilter bloomFilter;
     private List<byte[]> fencePointers;   //每个SSTbale的key指针，可以看成是block的稀疏索引
 
@@ -61,7 +61,7 @@ public class SSTable {
         }
     }
 
-    public boolean write(byte[] key, byte[] value) {
+    public boolean put(byte[] key, byte[] value) {
         if( size.get() >= maxSize) {
             logger.error("level=" + levelIndex + ", table=" + tableIndex + " 已超过最大长度限制");
             return false;
@@ -94,7 +94,7 @@ public class SSTable {
         return true;
     }
 
-    public byte[] read(byte[] key) {
+    public byte[] get(byte[] key) {
         byte[] val = null;
         readWriteLock.readLock().lock();
         if (!bloomFilter.isSet(key) || !checkKeyBound(key)) {

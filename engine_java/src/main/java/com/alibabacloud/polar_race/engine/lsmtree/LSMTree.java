@@ -49,9 +49,10 @@ public class LSMTree {
     private List<Level> levels;
     private ManifestInfo manifestInfo;
 
+    private Object sstableCreationLock;
+
     //private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock(true);
-    private final DaemonThreadFactory threadFactory = new DaemonThreadFactory("merge");
     private final AtomicInteger count = new AtomicInteger(0);
 
     public LSMTree(String path) {
@@ -61,7 +62,8 @@ public class LSMTree {
 
         memTable = new MemTable(BUFFER_MAX_ENTRIES);
         levels = new ArrayList<>();
-        //thinIndex = new HashMap<>();
+        sstableCreationLock = new Object();
+
         long maxRunSize = BUFFER_MAX_ENTRIES;
         int depth = TREE_DEPTH;
         while ((depth--) > 0) {
@@ -152,29 +154,58 @@ public class LSMTree {
      * 一次写入操作只涉及一次磁盘顺序写或一次内存写入，所以很快
      */
     public void put(byte[] key, byte[] value) {
+        rwLock.writeLock().lock();
         FileHelper.writeObjectToFile(new KVEntry(key, value), LOG_FILE_PATH);
-        //0.先看能不能插入buffer
-        if (memTable.write(key, value)) {
+        rwLock.writeLock().unlock();
+
+        if (memTable.put(key, value)) {
             return;
         }
+
         mergeOps();
+
         put(key, value);
     }
 
-    private void mergeOps() {
-        //1.如果不能插入buffer，说明buffer已满，则看能不能将buffer刷到level 0上，先看需不需要进行归并操作
-        //应该放在后台线程，而不用阻塞put操作
-        threadFactory.newThread(new Runnable() {
-            @Override
-            public void run() {
-                mergeDown(0);
+    private void put(byte[] key, byte[] value, long createdTime) {
+        try {
+            boolean success = memTable.put(key, value);
+            if (!success) {   //写满了
+                synchronized (sstableCreationLock) {
+                    success = memTable.put(key, value);
+                    if (!success) {  //刷到level 0 磁盘
+                        memTable.markImmutable(true);
+
+                    }
+                }
             }
-        }).start();
-        //mergeDown(0);
-        //2.buffer刷到level 0上，如果当前sstable满了，则创建一个新的
-        synchronized (this) {
-            if (levels.get(0).getRuns().size() == 0 ||
-                    levels.get(0).getRuns().getFirst().getSize() == levels.get(0).getRuns().getFirst().getMaxSize()) {
+        } catch (Exception e) {
+            logger.error("写入数据出错！" + e);
+        }
+    }
+
+    private void mergeOps() {
+        mergeDown(0);
+
+        if (levels.get(0).getRuns().size() == 0 ||
+                levels.get(0).getRuns().getFirst().getSize() == levels.get(0).getRuns().getFirst().getMaxSize()) {
+            int idx = levels.get(0).getRuns().size();
+            levels.get(0).getRuns().addFirst(new SSTable(
+                    levels.get(0).getMaxRunSize(),
+                    BF_BITS_PER_ENTRY,
+                    levels.get(0).getRuns().size(),
+                    0,
+                    manifestInfo.getMaxKeyInfos().get(idx),
+                    manifestInfo.getFencePointerInfos().get(idx),
+                    manifestInfo.getBloomFilterInfos().get(idx)));
+        }
+
+        final Map<byte[], byte[]> imutableMap = memTable.getEntries();             //应该执行深拷贝，得到不变的memtable
+        for (final Map.Entry<byte[], byte[]> entry : imutableMap.entrySet()) {     //这个输出就是按顺序的
+            boolean success = levels.get(0).getRuns().getFirst().put(entry.getKey(), entry.getValue());
+
+            /*if (!success) {
+                mergeDown(0);
                 int idx = levels.get(0).getRuns().size();
                 levels.get(0).getRuns().addFirst(new SSTable(
                         levels.get(0).getMaxRunSize(),
@@ -184,29 +215,13 @@ public class LSMTree {
                         manifestInfo.getMaxKeyInfos().get(idx),
                         manifestInfo.getFencePointerInfos().get(idx),
                         manifestInfo.getBloomFilterInfos().get(idx)));
-            }
-            final Map<byte[], byte[]> imutableMap = memTable.getEntries();  //应该执行深拷贝，得到不变的memtable
+                levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
+            }*/
 
-            for (Map.Entry<byte[], byte[]> entry : imutableMap.entrySet()) {  //这个输出就是按顺序的
-                boolean success = levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
-                if (!success) {
-                    mergeDown(0);
-                    int idx = levels.get(0).getRuns().size();
-                    levels.get(0).getRuns().addFirst(new SSTable(
-                            levels.get(0).getMaxRunSize(),
-                            BF_BITS_PER_ENTRY,
-                            levels.get(0).getRuns().size(),
-                            0,
-                            manifestInfo.getMaxKeyInfos().get(idx),
-                            manifestInfo.getFencePointerInfos().get(idx),
-                            manifestInfo.getBloomFilterInfos().get(idx)));
-                    levels.get(0).getRuns().getFirst().write(entry.getKey(), entry.getValue());
-                }
-            }
-            //3.清空buffer，并重新插入
-            memTable.clear();
         }
-        //如果write成功了应该把此时的log删掉，但是万一此时正在写log呢？所以应该加锁
+
+        memTable.clear();
+
         rwLock.writeLock().lock();
         FileHelper.clearFileContent(LOG_FILE_PATH);
         rwLock.writeLock().unlock();
@@ -215,31 +230,16 @@ public class LSMTree {
     public byte[] get(final byte[] key) {
         byte[] latestVal;
         //0.先在buffer中找
-        if ((latestVal = memTable.read(key)) != null)
+        if ((latestVal = memTable.get(key)) != null)
             return latestVal;
         //1.buffer中不存在，则在runs中查找，todo:这里可以多线程并发地找
         for (Level level : levels) {
             for (SSTable ssTable : level.getRuns()) {
-                latestVal = ssTable.read(key);
+                latestVal = ssTable.get(key);
                 if (latestVal != null)
                     return latestVal;
             }
         }
-        /*AtomicInteger counter = new AtomicInteger(0);
-        AtomicInteger latestRun = new AtomicInteger(-1);
-        ReentrantLock lock = new ReentrantLock();
-        try {
-            pool.execute(() -> {
-                int currentRun = counter.getAndIncrement();
-                Run run = getRun(currentRun);
-                byte[] currentVal = run.read(key);
-                if (currentVal != null);
-
-            });
-            pool.awaitTermination(100, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            logger.error("在runs中查找key出错", e);
-        }*/
         return latestVal;
     }
 
@@ -289,7 +289,7 @@ public class LSMTree {
             levels.get(nextLevel).getWriteLock().unlock();
             while (!mergeOps.isDone()) {
                 KVEntry entry = mergeOps.next();
-                levels.get(nextLevel).getRuns().getFirst().write(entry.getKey(), entry.getValue());
+                levels.get(nextLevel).getRuns().getFirst().put(entry.getKey(), entry.getValue());
             }
         } catch (Exception e) {
             //logger.error("merge内存映射文件错误" + e);
