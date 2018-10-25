@@ -10,6 +10,7 @@ import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -50,10 +51,12 @@ public class LSMTree {
     private ManifestInfo manifestInfo;
 
     private Object sstableCreationLock;
+    private LevelMerger levelMerger;
 
     //private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock(true);
     private final AtomicInteger count = new AtomicInteger(0);
+    private CountDownLatch countDownLatch;
 
     public LSMTree(String path) {
         DB_STORE_DIR = path;
@@ -63,6 +66,7 @@ public class LSMTree {
         memTable = new MemTable(BUFFER_MAX_ENTRIES);
         levels = new ArrayList<>();
         sstableCreationLock = new Object();
+        countDownLatch = new CountDownLatch(2);
 
         long maxRunSize = BUFFER_MAX_ENTRIES;
         int depth = TREE_DEPTH;
@@ -70,7 +74,9 @@ public class LSMTree {
             levels.add(new Level(TREE_FANOUT, maxRunSize));
             maxRunSize *= TREE_FANOUT;
         }
+
         Init();
+        startLevelMerger();
     }
 
     private void Init() {
@@ -100,6 +106,11 @@ public class LSMTree {
         }
         initLevels();
         checkRedoLog();
+    }
+
+    private void startLevelMerger() {
+        levelMerger = new LevelMerger(this.countDownLatch, this.levels, this.manifestInfo);
+        levelMerger.start();
     }
 
     private void initLevels() {
@@ -158,13 +169,13 @@ public class LSMTree {
         FileHelper.writeObjectToFile(new KVEntry(key, value), LOG_FILE_PATH);
         rwLock.writeLock().unlock();
 
-        if (memTable.put(key, value)) {
+        this.put(key, value, System.currentTimeMillis());
+
+        /*if (memTable.put(key, value)) {
             return;
         }
-
         mergeOps();
-
-        put(key, value);
+        put(key, value);*/
     }
 
     private void put(byte[] key, byte[] value, long createdTime) {
@@ -175,9 +186,21 @@ public class LSMTree {
                     success = memTable.put(key, value);
                     if (!success) {  //刷到level 0 磁盘
                         memTable.markImmutable(true);
+
                         Level level = levels.get(0);
                         level.getWriteLock().lock();
-                        level.getRuns().addFirst(memTable);
+                        int idx = levels.get(0).getRuns().size();
+                        level.getRuns().addFirst(new SSTable(
+                                levels.get(0).getMaxRunSize(),
+                                BF_BITS_PER_ENTRY,
+                                levels.get(0).getRuns().size(),
+                                0,
+                                manifestInfo.getMaxKeyInfos().get(idx),
+                                manifestInfo.getFencePointerInfos().get(idx),
+                                manifestInfo.getBloomFilterInfos().get(idx)));
+
+                        memTable.markImmutable(false);
+                        memTable.clear();
                     }
                 }
             }
@@ -187,7 +210,6 @@ public class LSMTree {
     }
 
     private void mergeOps() {
-        mergeDown(0);
 
         if (levels.get(0).getRuns().size() == 0 ||
                 levels.get(0).getRuns().getFirst().getSize() == levels.get(0).getRuns().getFirst().getMaxSize()) {
@@ -247,68 +269,6 @@ public class LSMTree {
     }
 
     /**
-     * 自上而下进行merge操作
-     */
-    private synchronized void mergeDown(int currentLevel) {
-        int nextLevel;
-        if (levels.get(currentLevel).hasRemaining()) {
-            return;
-        } else if (currentLevel >= levels.size()) {
-            logger.info("已经到达最后一层，没有多余的空间了");
-            return;
-        } else {
-            nextLevel = currentLevel + 1;
-        }
-        //如果下一层的还有没有剩余空间，那么还要递归下一层
-        if (!levels.get(nextLevel).hasRemaining()) {
-            mergeDown(nextLevel);
-            //assert levels.get(nextLevel).getRemaining() > 0;
-        }
-        //找到下一层是空闲的，则在把当前层所有的SSTable都归并，并放入下一层的第一个SSTable，然后清空当前层
-        MergeOps mergeOps = new MergeOps();
-        RandomAccessFile file = null;
-        byte[] mapping = null;
-        try {
-            for (AbstractTable table : levels.get(currentLevel).getRuns()) {
-                rwLock.readLock().lock();
-                file = new RandomAccessFile(((SSTable)table).getTableFilePath(), "rw");
-                mapping = new byte[(int) table.getMaxSize() * ENTRY_BYTE_SIZE];
-                MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_ONLY,
-                        0, table.getMaxSize() * LSMTree.ENTRY_BYTE_SIZE);
-                buffer.get(mapping);
-                mergeOps.add(mapping, table.getSize());
-                rwLock.readLock().unlock();
-            }
-            int idx = nextLevel * TREE_FANOUT + levels.get(nextLevel).getRuns().size();
-            levels.get(nextLevel).getWriteLock().lock();
-            levels.get(nextLevel).getRuns().addFirst(new SSTable(
-                    levels.get(nextLevel).getMaxRunSize(),
-                    BF_BITS_PER_ENTRY,
-                    levels.get(nextLevel).getRuns().size(),
-                    nextLevel,
-                    manifestInfo.getMaxKeyInfos().get(idx),
-                    manifestInfo.getFencePointerInfos().get(idx),
-                    manifestInfo.getBloomFilterInfos().get(idx)));
-            levels.get(nextLevel).getWriteLock().unlock();
-            while (!mergeOps.isDone()) {
-                KVEntry entry = mergeOps.next();
-                levels.get(nextLevel).getRuns().getFirst().put(entry.getKey(), entry.getValue());
-            }
-        } catch (Exception e) {
-            //logger.error("merge内存映射文件错误" + e);
-            e.printStackTrace();
-        } finally {
-            FileHelper.closeFile(file);
-        }
-        rwLock.writeLock().lock();
-        for (AbstractTable table : levels.get(currentLevel).getRuns()) {
-            FileHelper.clearFileContent(((SSTable) table).getTableFilePath());
-        }
-        rwLock.writeLock().unlock();
-        levels.get(currentLevel).getRuns().clear();
-    }
-
-    /**
      * 关闭系统
      * 0.将内存的Memtable中的信息刷到磁盘
      * 1.将每个level的信息都保存到manifest文件中
@@ -326,6 +286,7 @@ public class LSMTree {
                 manifestInfo.getBloomFilterInfos().put(idx, table.getBloomFilter());
             }
         }
+
         RandomAccessFile file = null;
         byte[] infos = null;
         try {
@@ -339,6 +300,15 @@ public class LSMTree {
             FileHelper.closeFile(file);
             logger.info("关闭系统");
         }
+
+        levelMerger.setStop();
+        try {
+            logger.info("等待Merge线程结束...");
+            this.countDownLatch.await();
+        } catch (InterruptedException e) {
+            logger.error("等待Merge线程结束被打断！" + e);
+        }
+
     }
 
 }

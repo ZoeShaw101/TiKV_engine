@@ -13,16 +13,15 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class MemTable extends AbstractTable implements Cloneable {
     private Logger logger = Logger.getLogger(MemTable.class);
 
-    private static int MAX_SIZE;
     private Map<byte[], byte[]> entries;
 
     public MemTable(int maxSize) {
-        MAX_SIZE = maxSize;
+        this.maxSize = maxSize;
         entries = new ConcurrentSkipListMap<>((k1, k2) -> new String(k1).compareTo(new String(k2)));  //按key的大小升序
     }
 
     public boolean put(byte[] key, byte[] val) {
-        if (entries.size() >= MAX_SIZE) {
+        if (entries.size() >= this.maxSize) {
             return false;
         }
         entries.put(key, val);
