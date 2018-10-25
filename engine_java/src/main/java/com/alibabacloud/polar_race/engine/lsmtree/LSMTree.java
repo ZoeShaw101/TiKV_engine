@@ -175,7 +175,9 @@ public class LSMTree {
                     success = memTable.put(key, value);
                     if (!success) {  //刷到level 0 磁盘
                         memTable.markImmutable(true);
-
+                        Level level = levels.get(0);
+                        level.getWriteLock().lock();
+                        level.getRuns().addFirst(memTable);
                     }
                 }
             }
@@ -190,6 +192,7 @@ public class LSMTree {
         if (levels.get(0).getRuns().size() == 0 ||
                 levels.get(0).getRuns().getFirst().getSize() == levels.get(0).getRuns().getFirst().getMaxSize()) {
             int idx = levels.get(0).getRuns().size();
+
             levels.get(0).getRuns().addFirst(new SSTable(
                     levels.get(0).getMaxRunSize(),
                     BF_BITS_PER_ENTRY,
@@ -234,7 +237,7 @@ public class LSMTree {
             return latestVal;
         //1.buffer中不存在，则在runs中查找，todo:这里可以多线程并发地找
         for (Level level : levels) {
-            for (SSTable ssTable : level.getRuns()) {
+            for (AbstractTable ssTable : level.getRuns()) {
                 latestVal = ssTable.get(key);
                 if (latestVal != null)
                     return latestVal;
@@ -266,9 +269,9 @@ public class LSMTree {
         RandomAccessFile file = null;
         byte[] mapping = null;
         try {
-            for (SSTable table : levels.get(currentLevel).getRuns()) {
+            for (AbstractTable table : levels.get(currentLevel).getRuns()) {
                 rwLock.readLock().lock();
-                file = new RandomAccessFile(table.getTableFilePath(), "rw");
+                file = new RandomAccessFile(((SSTable)table).getTableFilePath(), "rw");
                 mapping = new byte[(int) table.getMaxSize() * ENTRY_BYTE_SIZE];
                 MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_ONLY,
                         0, table.getMaxSize() * LSMTree.ENTRY_BYTE_SIZE);
@@ -298,8 +301,8 @@ public class LSMTree {
             FileHelper.closeFile(file);
         }
         rwLock.writeLock().lock();
-        for (SSTable table : levels.get(currentLevel).getRuns()) {
-            FileHelper.clearFileContent(table.getTableFilePath());
+        for (AbstractTable table : levels.get(currentLevel).getRuns()) {
+            FileHelper.clearFileContent(((SSTable) table).getTableFilePath());
         }
         rwLock.writeLock().unlock();
         levels.get(currentLevel).getRuns().clear();
@@ -315,7 +318,8 @@ public class LSMTree {
             mergeOps();
         }
         for (Level level : levels) {
-            for (SSTable table : level.getRuns()) {
+            for (AbstractTable atable : level.getRuns()) {
+                SSTable table = (SSTable) atable;
                 int idx = table.getTableIndex() * table.getLevelIndex();
                 manifestInfo.getMaxKeyInfos().put(idx, table.getMaxKey());
                 manifestInfo.getFencePointerInfos().put(idx, table.getFencePointers());
@@ -335,8 +339,6 @@ public class LSMTree {
             FileHelper.closeFile(file);
             logger.info("关闭系统");
         }
-        //todo:这里还需要等待所有后台线程执行完毕才正式关闭系统
-
     }
 
 }

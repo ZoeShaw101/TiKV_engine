@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 public class Level {
     private int maxRuns;
     private long maxRunSize;
-    private BlockingDeque<SSTable> runs;  //最近时间的插入到最前面，LRU
+    private BlockingDeque<AbstractTable> runs;  //最近时间的插入到最前面，LRU
 
     private ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
     private WriteLock writeLock = readWriteLock.writeLock();
@@ -28,7 +28,7 @@ public class Level {
         runs = new LinkedBlockingDeque<>();
     }
 
-    public Deque<SSTable> getRuns() {
+    public Deque<AbstractTable> getRuns() {
         return runs;
     }
 

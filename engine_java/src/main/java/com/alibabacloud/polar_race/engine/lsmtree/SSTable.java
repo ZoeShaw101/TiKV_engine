@@ -20,8 +20,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class SSTable extends AbstractTable {
     private Logger logger = Logger.getLogger(SSTable.class);
 
-    private long maxSize;  //当前table最多的entry个数
-    private AtomicLong size = new AtomicLong(0);  //当前table里的entry个数
     private byte[] maxKey;   //维护一个table内最大的key值
     private int tableIndex;
     private int levelIndex;
@@ -161,14 +159,6 @@ public class SSTable extends AbstractTable {
 
     public byte[] getMaxKey() {
         return maxKey;
-    }
-
-    public long getMaxSize() {
-        return maxSize;
-    }
-
-    public long getSize() {
-        return size.get();
     }
 
     public int getTableIndex() {
