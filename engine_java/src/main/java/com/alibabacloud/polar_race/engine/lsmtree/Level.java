@@ -32,6 +32,10 @@ public class Level {
         return runs;
     }
 
+    public int getMaxRuns() {
+        return maxRuns;
+    }
+
     public long getMaxRunSize() {
         return maxRunSize;
     }

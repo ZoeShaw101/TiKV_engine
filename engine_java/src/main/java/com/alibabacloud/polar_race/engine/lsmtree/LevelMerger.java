@@ -1,7 +1,6 @@
 package com.alibabacloud.polar_race.engine.lsmtree;
 
 import com.alibabacloud.polar_race.engine.utils.FileHelper;
-import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,12 +9,13 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class LevelMerger extends Thread {
     static final Logger logger = LoggerFactory.getLogger(LevelMerger.class);
 
-    private static final int MAX_SLEEP_TIME = 2 * 100; // 2 seconds
+    private static final int MAX_SLEEP_TIME = 2 * 10; //
 
     private CountDownLatch countDownLatch;
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock(true);
@@ -23,22 +23,20 @@ public class LevelMerger extends Thread {
     private List<Level> levels;
     private ManifestInfo manifestInfo;
 
-    public LevelMerger(CountDownLatch latch, List<Level> levels, ManifestInfo manifestInfo) {
-        this.countDownLatch = latch;
+    public LevelMerger(List<Level> levels, ManifestInfo manifestInfo) {
+        this.countDownLatch = new CountDownLatch(1);
         this.levels = levels;
         this.manifestInfo = manifestInfo;
     }
 
     @Override
     public void run() {
-        while (!stop) {
-            try {
-                mergeDown(0);
-            } catch (Exception e) {
-                logger.error("Merge线程" + this.getName() + "过程中出错！" + e);
-            }
+        try {
+            mergeDown(0);
+        } catch (Exception e) {
+            logger.error("Merge线程" + this.getName() + "过程中出错！" + e);
         }
-        this.countDownLatch.countDown();
+        countDownLatch.countDown();
         logger.info("Merge线程" + this.getName() + "已停止");
     }
 
@@ -60,6 +58,7 @@ public class LevelMerger extends Thread {
             mergeDown(nextLevel);
         }
         //找到下一层是空闲的，则在把当前层所有的SSTable都归并，并放入下一层的第一个SSTable，然后清空当前层
+        logger.info("MergeDown第" + currentLevel + "与第" + nextLevel +"层...");
         MergeOps mergeOps = new MergeOps();
         RandomAccessFile file = null;
         byte[] mapping = null;
@@ -101,10 +100,15 @@ public class LevelMerger extends Thread {
         }
         rwLock.writeLock().unlock();
         levels.get(currentLevel).getRuns().clear();
+        logger.info("MergeDown操作完成");
     }
 
     public void setStop() {
         this.stop = true;
         logger.info("Merge线程" + this.getName() + "已停止");
+    }
+
+    public CountDownLatch getCountDownLatch() {
+        return countDownLatch;
     }
 }
