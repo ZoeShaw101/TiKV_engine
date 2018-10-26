@@ -131,10 +131,6 @@ public class BitCask {
         logger.info("要恢复的数据有" + cnt + "个");
     }
 
-    private void clearRedoLog(RedoLog redoLog) {
-
-    }
-
     private void clearAllRedoLog(String logPath) {
         File file = new File(logPath);
         if (!FileHelper.fileExists(logPath)) return;

@@ -32,13 +32,13 @@ public class LSMTree {
     //系统参数，可用于调节性能
     static final double BF_BITS_PER_ENTRY = 0.5;
     static final int TREE_DEPTH = 5;
-    static final int TREE_FANOUT = 2;  //每层level的sstable个数
-    static final int BUFFER_NUM_BLOCKS = 2;
+    static final int TREE_FANOUT = 4;  //每层level的sstable个数
+    static final int BUFFER_NUM_BLOCKS = 50;
     static final int THREAD_COUNT = 4;
     static final int KEY_BYTE_SIZE = 8;  //4B
     static final int VALUE_BYTE_SIZE = 4000;   //4KB
     static final int ENTRY_BYTE_SIZE = 4008;
-    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 10;  //每个SSTable的BLOCK大小
+    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 100;  //每个SSTable的BLOCK大小
     static final int BUFFER_MAX_ENTRIES = BUFFER_NUM_BLOCKS * BLOCK_SIZE / ENTRY_BYTE_SIZE;  //最大页数 * 每页大小 ／ Entry大小 => 500个entry
     static final double FALSE_POSITIVE_PROBABILITY = 0.0001;
 
@@ -154,7 +154,7 @@ public class LSMTree {
         logger.info("需要恢复的数据有" + entries.size() + "个");
         for (Object o : entries) {
             KVEntry e = (KVEntry) o;
-            put(e.getKey(), e.getValue());
+            this.put(e.getKey(), e.getValue());
             logger.info("恢复数据：key=" + new String(e.getKey()) + ", value=" + new String(e.getValue()));
         }
     }
@@ -213,31 +213,6 @@ public class LSMTree {
         }
     }
 
-    private void mergeOps() {
-        if (levels.get(0).getRuns().size() == 0 ||
-                levels.get(0).getRuns().getFirst().getSize() == levels.get(0).getRuns().getFirst().getMaxSize()) {
-            int idx = levels.get(0).getRuns().size();
-
-            levels.get(0).getRuns().addFirst(new SSTable(
-                    levels.get(0).getMaxRunSize(),
-                    BF_BITS_PER_ENTRY,
-                    levels.get(0).getRuns().size(),
-                    0,
-                    manifestInfo.getMaxKeyInfos().get(idx),
-                    manifestInfo.getFencePointerInfos().get(idx),
-                    manifestInfo.getBloomFilterInfos().get(idx)));
-        }
-
-        final Map<byte[], byte[]> imutableMap = memTable.getEntries();             //应该执行深拷贝，得到不变的memtable
-        for (final Map.Entry<byte[], byte[]> entry : imutableMap.entrySet()) {     //这个输出就是按顺序的
-            boolean success = levels.get(0).getRuns().getFirst().put(entry.getKey(), entry.getValue());
-        }
-        memTable.clear();
-        rwLock.writeLock().lock();
-        FileHelper.clearFileContent(LOG_FILE_PATH);
-        rwLock.writeLock().unlock();
-    }
-
     public byte[] get(final byte[] key) {
         byte[] latestVal;
         //0.先在buffer中找
@@ -258,6 +233,8 @@ public class LSMTree {
      * 关闭系统
      * 0.将内存的Memtable中的信息刷到磁盘
      * 1.将每个level的信息都保存到manifest文件中
+     *
+     * todo:系统在关闭前意外退出，那么有的信息可能没被保存下来
      */
     public void close() {
         if (!memTable.isEmpty()) {

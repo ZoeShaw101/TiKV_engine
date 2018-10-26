@@ -18,7 +18,7 @@ public class ReadWriteTest {
 
     private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
     private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
-    private final static int ENTRY_NUM = 80;
+    private final static int ENTRY_NUM = 1000;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
     private static EngineRace engineRace = new EngineRace();
@@ -101,8 +101,8 @@ public class ReadWriteTest {
         for (int i = 0; i < ENTRY_NUM; i++) {
             kvs.put(TestUtil.randomString(8).getBytes(), TestUtil.randomString(4000).getBytes());
         }
-        write();
-//        concurrentWrite();
+//        write();
+        concurrentWrite();
         engineRace.close();
 
 //        long cost = System.nanoTime() - start;
