@@ -214,7 +214,7 @@ public class HashMapTable extends AbstractMapTable {
             // make a tombstone
             mapEntry = this.appendTombstone(key);
         } else {
-            this.appendNew(key, value, timeToLive, createdTime);
+            mapEntry = this.appendNew(key, value, timeToLive, createdTime);
         }
 
         if (mapEntry == null) { // no space

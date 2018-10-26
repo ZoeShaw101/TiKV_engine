@@ -19,7 +19,7 @@ public class ReadWriteTest {
 
     private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
     private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
-    private final static int ENTRY_NUM = 20;
+    private final static int ENTRY_NUM = 1000;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
     private static EngineRace engineRace = new EngineRace();
@@ -97,14 +97,15 @@ public class ReadWriteTest {
 //            kvs.put(TestUtil.randomString(8).getBytes(), TestUtil.randomString(4000).getBytes());
 //        }
 //        write();
+
         concurrentWrite();
         engineRace.close();
 
-//        long cost = System.nanoTime() - start;
-//        System.out.println("=====================================");
-//        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost +
-//                ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
-//        System.out.println("=====================================");
+        long cost = System.nanoTime() - start;
+        System.out.println("=====================================");
+        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost +
+                ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
+        System.out.println("=====================================");
 
 
         try {
