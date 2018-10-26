@@ -25,7 +25,9 @@ public class MemTable extends AbstractTable implements Cloneable {
             return false;
         }
         entries.put(key, val);
-        logger.info("数据写入内存表key=" + new String(key) + ", memtable.size=" + entries.size());
+        if (LSMTree.DEBUG_ENABLE) {
+            logger.info("数据写入内存表key=" + new String(key) + ", memtable.size=" + entries.size());
+        }
         return true;
     }
 

@@ -101,7 +101,6 @@ public class FileHelper {
             oos = NewObjectOutputStream.getInstance(filePath);
             oos.writeObject(obj);
             oos.flush();
-            logger.info("序列化对象进" + filePath);
         } catch (Exception e) {
             logger.error("将对象序列化进文件出错", e);
         } finally {

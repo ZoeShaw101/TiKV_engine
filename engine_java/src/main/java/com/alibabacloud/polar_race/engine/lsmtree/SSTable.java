@@ -81,8 +81,10 @@ public class SSTable extends AbstractTable {
                 maxKey = key;
             }
             size.getAndIncrement();
-            logger.info("数据写入内存映射文件level=" + levelIndex +  ", table=" + tableIndex +
-                    ", offset=" + offset +": key=" + new String(key) + " ,当前table内的entry个数为size=" + size);
+            if (LSMTree.DEBUG_ENABLE) {
+                logger.info("数据写入内存映射文件level=" + levelIndex +  ", table=" + tableIndex +
+                        ", offset=" + offset +": key=" + new String(key) + " ,当前table内的entry个数为size=" + size);
+            }
         } catch (Exception e) {
             logger.error("内存映射文件错误" + e);
         } finally {
@@ -98,6 +100,9 @@ public class SSTable extends AbstractTable {
         if (!bloomFilter.isSet(key) || !checkKeyBound(key)) {
             return val;
         }
+        /*if (!checkKeyBound(key)) {
+            return val;
+        }*/
         int nextPage = findUpperBound(key);
         int pageIndex = nextPage == 0 ? 0 : nextPage - 1;
         RandomAccessFile file = null;
@@ -123,7 +128,7 @@ public class SSTable extends AbstractTable {
                 break;
             }
         }
-        if (val != null) {
+        if (val != null && LSMTree.DEBUG_ENABLE) {
             logger.info("从SSTable读出key=" + new String(key) + ", value=" + new String(val));
         }
         return val;

@@ -35,16 +35,17 @@ public class LSMTree {
     static final double BF_BITS_PER_ENTRY = 0.5;
     static final int TREE_DEPTH = 5;
     static final int TREE_FANOUT = 4;  //每层level的sstable个数
-    static final int BUFFER_NUM_BLOCKS = 50;
     static final int THREAD_COUNT = 4;
     static final int KEY_BYTE_SIZE = 8;  //4B
     static final int VALUE_BYTE_SIZE = 4000;   //4KB
     static final int ENTRY_BYTE_SIZE = 4008;
-    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 100;  //每个SSTable的BLOCK大小
+    static final int BUFFER_NUM_BLOCKS = 2;
+    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 10;  //每个SSTable的BLOCK大小
     static final int BUFFER_MAX_ENTRIES = BUFFER_NUM_BLOCKS * BLOCK_SIZE / ENTRY_BYTE_SIZE;  //最大页数 * 每页大小 ／ Entry大小 => 500个entry
     static final double FALSE_POSITIVE_PROBABILITY = 0.0001;
 
     static String DB_STORE_DIR;
+    static boolean DEBUG_ENABLE = false;
     private static String MANIFEST_FILE_PATH ; //记录当前level的sstable的maxKey bloomFilter fencePointer
     private static String LOG_FILE_PATH;
 
@@ -54,13 +55,14 @@ public class LSMTree {
     private ManifestInfo manifestInfo;
 
     private Object sstableCreationLock;
-    private LevelMerger levelMerger;
+    private LevelMerger levelMerger = null;
 
     //private ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock(true);
     private final AtomicInteger count = new AtomicInteger(0);
 
     public LSMTree(String path) {
+        logger.info("开启系统");
         DB_STORE_DIR = path;
         MANIFEST_FILE_PATH =  DB_STORE_DIR + "/manifest";
         LOG_FILE_PATH = DB_STORE_DIR +  "/redo.log";
@@ -259,9 +261,16 @@ public class LSMTree {
                             manifestInfo.getBloomFilterInfos().get(idx)));
                 }
                 level.getWriteLock().unlock();
+
                 for (final Map.Entry<byte[], byte[]> entry : memTable.getEntries().entrySet()) {
+                    rwLock.writeLock().lock();
+                    FileHelper.writeObjectToFile(new KVEntry(entry.getKey(), entry.getValue()), LOG_FILE_PATH);
+                    rwLock.writeLock().unlock();
                     levels.get(0).getRuns().getFirst().put(entry.getKey(), entry.getValue());
                 }
+                rwLock.writeLock().lock();
+                FileHelper.clearFileContent(LOG_FILE_PATH);
+                rwLock.writeLock().unlock();
             } catch (Exception e) {
                 logger.error("将最后内存中的数据写会磁盘出错！" + e);
             }
@@ -269,7 +278,7 @@ public class LSMTree {
         for (Level level : levels) {
             for (AbstractTable atable : level.getRuns()) {
                 SSTable table = (SSTable) atable;
-                int idx = table.getTableIndex() * table.getLevelIndex();
+                int idx = TREE_FANOUT * table.getLevelIndex() + table.getTableIndex();
                 manifestInfo.getMaxKeyInfos().put(idx, table.getMaxKey());
                 manifestInfo.getFencePointerInfos().put(idx, table.getFencePointers());
                 manifestInfo.getBloomFilterInfos().put(idx, table.getBloomFilter());
@@ -284,13 +293,13 @@ public class LSMTree {
             MappedByteBuffer buffer = file.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, infos.length);
             buffer.put(infos);
         } catch (Exception e) {
-            logger.info("写manifest文件出错" + e);
+            logger.error("写manifest文件出错" + e);
         } finally {
             FileHelper.closeFile(file);
             logger.info("关闭系统");
         }
-
-        levelMerger.setStop();
+        if (levelMerger != null)
+            levelMerger.setStop();
 
     }
 

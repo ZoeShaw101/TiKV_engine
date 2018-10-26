@@ -1,6 +1,7 @@
 package benchMark;
 
 import com.alibabacloud.polar_race.engine.common.EngineRace;
+import com.alibabacloud.polar_race.engine.lsmtree.LSMTree;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;
@@ -18,7 +19,7 @@ public class ReadWriteTest {
 
     private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
     private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
-    private final static int ENTRY_NUM = 100;
+    private final static int ENTRY_NUM = 20;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
     private static EngineRace engineRace = new EngineRace();
@@ -35,6 +36,7 @@ public class ReadWriteTest {
                         for (int j = 0; j < ENTRY_NUM; j++) {
                             byte[] key = TestUtil.randomString(8).getBytes();
                             byte[] value = TestUtil.randomString(4000).getBytes();
+                            kvs.put(key, value);
                             engineRace.write(key, value);
                             byteNum.getAndAdd(4008);
                         }
@@ -56,12 +58,6 @@ public class ReadWriteTest {
 
     private static void write() {
         try {
-            /*for (int j = 0; j < ENTRY_NUM; j++) {
-                byte[] key = TestUtil.randomString(8).getBytes();
-                byte[] value = TestUtil.randomString(4000).getBytes();
-                engineRace.write(key, value);
-                byteNum.getAndAdd(4008);
-            }*/
             for (byte[] key : kvs.keySet()) {
                 engineRace.write(key, kvs.get(key));
             }
@@ -75,20 +71,19 @@ public class ReadWriteTest {
         for (byte[] key : kvs.keySet()) {
             try {
                 byte[] readVal = engineRace.read(key);
-                if (readVal == null) {
-                    logger.error("没找到key=" + new String(key));
+                if (readVal == null || readVal.length == 0) {
+                    //logger.error("没找到key=" + new String(key));
                     cnt++;
                 } else if (!Arrays.equals(readVal, kvs.get(key))) {
-                    logger.info("查找出的value值错误");
-                } else {
-                    logger.info("找到key=" + new String(key));
+                    //logger.error("查找出的value值错误");
+                    cnt++;
                 }
             } catch (Exception e) {
-                //e.printStackTrace();
+                e.printStackTrace();
                 logger.error(e);
             }
         }
-        logger.info("没找到value的个数：" + cnt);
+        logger.info("读写测试：没找到或值错误的value的个数：" + cnt);
     }
 
     public static void main(String[] args) {
@@ -98,11 +93,11 @@ public class ReadWriteTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        for (int i = 0; i < ENTRY_NUM; i++) {
-            kvs.put(TestUtil.randomString(8).getBytes(), TestUtil.randomString(4000).getBytes());
-        }
-        write();
-//        concurrentWrite();
+//        for (int i = 0; i < ENTRY_NUM * THREAD_NUM; i++) {
+//            kvs.put(TestUtil.randomString(8).getBytes(), TestUtil.randomString(4000).getBytes());
+//        }
+//        write();
+        concurrentWrite();
         engineRace.close();
 
 //        long cost = System.nanoTime() - start;
