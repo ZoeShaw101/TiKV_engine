@@ -16,24 +16,24 @@ namespace polar_race {
 	}
 
 	RetCode EngineRace::Open(const std::string& name, Engine** eptr) {
-		//´´½¨³õÊ¼ÎÄ¼þ¼Ð
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½Ä¼ï¿½ï¿½ï¿½
 		if (!DirExists(name) && 0 != mkdir(name.c_str(), 0755)) {
 			return kIOError;
 		}
 		*eptr = NULL;
-		EngineRace *engine_race = new EngineRace(name);												//´´½¨
-		RetCode ret = engine_race->log_store_.Init();												//³õÊ¼»¯
+		EngineRace *engine_race = new EngineRace(name);												//ï¿½ï¿½ï¿½ï¿½
+		RetCode ret = engine_race->log_store_.Init();												//ï¿½ï¿½Ê¼ï¿½ï¿½
 		if (ret != kSucc) {
 			delete engine_race;
 			return ret;
 		}
 		engine_race->memtable_.clear();
-		ret = engine_race->log_store_.Read(&(engine_race->memtable_));								//¶ÁÈ¡redolog
+		ret = engine_race->log_store_.Read(&(engine_race->memtable_));								//ï¿½ï¿½È¡redolog
 		if (ret != kSucc) {
 			delete engine_race;
 			return ret;
 		}
-		ret = engine_race->sstables_.Init();														//sstables_³õÊ¼»¯
+		ret = engine_race->sstables_.Init();														//sstables_ï¿½ï¿½Ê¼ï¿½ï¿½
 		if (ret != kSucc) {
 			delete engine_race;
 			return ret;
@@ -42,7 +42,7 @@ namespace polar_race {
 		return kSucc;
 	}
 
-	EngineRace::~EngineRace() {			//Îö¹¹º¯Êý
+	EngineRace::~EngineRace() {			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	}
 
 	RetCode EngineRace::Write(const PolarString& key, const PolarString& value) {
@@ -54,29 +54,33 @@ namespace polar_race {
 		}
 		pthread_mutex_lock(&mut_);
 		if (memtable_.size() == memtable_max_size_) {
-			//Èç¹ûÄÚ´æÂúÁË¾ÍÈ¥Ð´ÎÄ¼þ
+			//ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ë¾ï¿½È¥Ð´ï¿½Ä¼ï¿½
 			std::string result;
 			for (auto it : memtable_) {
 				result.append(it.second.GetItem());
 				result.append("\n");
 			}
-			std::stringstream ss;
-			auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-			ss << std::put_time(std::localtime(&t), "%Y%m%d%H%M%S");
-			std::string filename = ss.str();						//Éú³ÉÎÄ¼þÃû
+			// std::stringstream ss;
+			// auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			// ss << std::put_time(std::localtime(&t), "%Y%m%d%H%M%S");
+			// std::string filename = ss.str();						//ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
+			time_t t = time(0);
+			char tmpBuf[255];
+			strftime(tmpBuf, 255, "%Y%m%d%H%M%S", localtime(&t)); //format date and time. 
+			std::string filename(tmpBuf);
 			filename = data_path_ + "/" + filename + "_" + memtable_.begin()->first;
 			std::ofstream output;
 			output.open(filename);
 			output << result;
 			output.close();
-			//Ð´Íê¾ÍÇå¿ÕmemtableµÄÄÚÈÝ
+			//Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½memtableï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			memtable_.clear();
-			//²¢ÇÒÇå¿ÕredologoµÄÄÚÈÝ
+			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½redologoï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			std::ofstream out_put;
 			out_put.open(log_path_, std::ofstream::trunc);
 			if (!out_put) { return kIOError; }
 			out_put.close();
-			//È»ºómerge£¬Ä¿Ç°ÏÈÕâÑù£¬µ«ÊÇÕâÑù²»Ì«ºÃ(Ð´ÎÄ¼þÊ±ºòÒªmerge£¬ÓÐµãÆµ·±)
+			//È»ï¿½ï¿½mergeï¿½ï¿½Ä¿Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì«ï¿½ï¿½(Ð´ï¿½Ä¼ï¿½Ê±ï¿½ï¿½Òªmergeï¿½ï¿½ï¿½Ðµï¿½Æµï¿½ï¿½)
 			sstables_.Merge();
 		}
 		pthread_mutex_unlock(&mut_);
@@ -94,7 +98,7 @@ namespace polar_race {
 			return kSucc;
 		}
 		else {
-			//È¥ÎÄ¼þÖÐÕÒ
+			//È¥ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
 			RetCode ret = sstables_.Read(key.ToString(), value, 4096);
 			return ret;
 		}
