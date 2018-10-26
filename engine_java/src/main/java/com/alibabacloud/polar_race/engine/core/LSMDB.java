@@ -49,6 +49,7 @@ public class LSMDB implements Closeable {
 
     @SuppressWarnings("unchecked")
     public LSMDB(String dir, DBConfig config) {
+        logger.info("初始化DB配置...");
         this.dir = dir;
         this.config = config;
 
@@ -97,6 +98,7 @@ public class LSMDB implements Closeable {
     }
 
     private void loadMapTables() throws IOException, ClassNotFoundException {
+        logger.info("加载磁盘的table信息...");
         File dirFile = new File(dir);
         if (!dirFile.exists())  {
             dirFile.mkdirs();

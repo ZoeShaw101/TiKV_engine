@@ -6,7 +6,7 @@ import java.io.*;
  * 自定义对象输出流，用于将对象序列化追加入文件末尾
  */
 
-public class NewObjectOutputStream extends ObjectOutputStream{
+public class NewObjectOutputStream extends ObjectOutputStream {
 
     public NewObjectOutputStream(OutputStream out) throws IOException {
         super(out);
@@ -17,7 +17,7 @@ public class NewObjectOutputStream extends ObjectOutputStream{
         super.reset();
     }
 
-    public static ObjectOutputStream newInstance(String filePath) throws IOException{
+    public static ObjectOutputStream getInstance(String filePath) throws IOException {
         File file = new File(filePath);
         long fileLen = file.length();
         ObjectOutputStream oos = null;

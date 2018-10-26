@@ -2,10 +2,12 @@ package com.alibabacloud.polar_race.engine.lsmtree;
 
 import com.alibabacloud.polar_race.engine.utils.DaemonThreadFactory;
 import com.alibabacloud.polar_race.engine.utils.FileHelper;
+import com.alibabacloud.polar_race.engine.utils.NewObjectOutputStream;
 import com.alibabacloud.polar_race.engine.utils.Serialization;
 import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -167,9 +169,6 @@ public class LSMTree {
         FileHelper.writeObjectToFile(new KVEntry(key, value), LOG_FILE_PATH);
         rwLock.writeLock().unlock();
         this.put(key, value, System.currentTimeMillis());
-        rwLock.writeLock().lock();
-        FileHelper.clearFileContent(LOG_FILE_PATH);
-        rwLock.writeLock().unlock();
     }
 
     private void put(byte[] key, byte[] value, long createdTime) {
@@ -205,6 +204,9 @@ public class LSMTree {
                         memTable.markImmutable(false);
                         memTable.clear();
                         memTable.put(key, value);
+                        rwLock.writeLock().lock();
+                        FileHelper.clearFileContent(LOG_FILE_PATH);
+                        rwLock.writeLock().unlock();
                     }
                 }
             }
@@ -289,6 +291,7 @@ public class LSMTree {
         }
 
         levelMerger.setStop();
+
     }
 
 }

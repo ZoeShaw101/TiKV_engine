@@ -98,9 +98,10 @@ public class FileHelper {
         ObjectOutputStream oos = null;
         rwLock.writeLock().lock();
         try {
-            oos = NewObjectOutputStream.newInstance(filePath);
+            oos = NewObjectOutputStream.getInstance(filePath);
             oos.writeObject(obj);
             oos.flush();
+            logger.info("序列化对象进" + filePath);
         } catch (Exception e) {
             logger.error("将对象序列化进文件出错", e);
         } finally {
