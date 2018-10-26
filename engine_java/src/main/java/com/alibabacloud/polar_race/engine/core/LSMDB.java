@@ -29,6 +29,7 @@ public class LSMDB implements Closeable {
     public static final int LEVEL1 = 1;
     public static final int LEVEL2 = 2;
     public static final int MAX_LEVEL = 2;
+
     private volatile HashMapTable[] activeInMemTables;
     private Object[] activeInMemTableCreationLocks;
     private List<LevelQueue>[] levelQueueLists;
@@ -42,6 +43,7 @@ public class LSMDB implements Closeable {
     private FileStatsCollector fileStatsCollector;
 
     private boolean closed = false;
+    public static final boolean DEBUG_ENABLE = true;
 
     public LSMDB(String dir) {
         this(dir, new DBConfig());
@@ -154,6 +156,7 @@ public class LSMDB implements Closeable {
             this.activeInMemTables[table.getShard()].setCompressionEnabled(this.config.isCompressionEnabled());
         }
 
+        //初始化level的table信息
         while(!pq.isEmpty()) {
             AbstractMapTable table = pq.poll();
             if (table.isUsable()) {
@@ -208,6 +211,7 @@ public class LSMDB implements Closeable {
         Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
         Preconditions.checkArgument(value != null && value.length > 0, "value is empty");
         ensureNotClosed();
+
         long start = System.nanoTime();
         String operation = isDelete ? Operations.DELETE : Operations.PUT;
         try {
@@ -237,7 +241,9 @@ public class LSMDB implements Closeable {
                     }
                 }
             }
-            logger.info("数据写入：key=" + new String(key));
+            if (DEBUG_ENABLE) {
+                logger.info("数据写入：key=" + new String(key));
+            }
         } catch(IOException ioe) {
             stats.recordDBError(operation);
             if (isDelete) {
