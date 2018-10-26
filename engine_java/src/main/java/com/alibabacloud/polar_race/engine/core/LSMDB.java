@@ -43,7 +43,7 @@ public class LSMDB implements Closeable {
     private FileStatsCollector fileStatsCollector;
 
     private boolean closed = false;
-    public static final boolean DEBUG_ENABLE = true;
+    public static final boolean DEBUG_ENABLE = false;
 
     public LSMDB(String dir) {
         this(dir, new DBConfig());
