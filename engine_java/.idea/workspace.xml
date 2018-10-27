@@ -23,21 +23,21 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="ReadWriteTest.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="ReadWriteTest.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/test/benchMark/ReadWriteTest.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="285">
-              <caret line="30" column="46" lean-forward="true" selection-start-line="30" selection-start-column="46" selection-end-line="30" selection-end-column="46" />
+            <state relative-caret-position="397">
+              <caret line="47" column="17" lean-forward="true" selection-start-line="47" selection-start-column="17" selection-end-line="47" selection-end-column="17" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="EngineRace.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="EngineRace.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/common/EngineRace.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="180">
-              <caret line="12" column="14" lean-forward="true" selection-start-line="12" selection-start-column="14" selection-end-line="12" selection-end-column="14" />
+            <state relative-caret-position="240">
+              <caret line="16" column="25" lean-forward="false" selection-start-line="16" selection-start-column="25" selection-end-line="16" selection-end-column="25" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -45,29 +45,34 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ClientTest.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/ClientTest.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="405">
-              <caret line="37" column="62" lean-forward="false" selection-start-line="37" selection-start-column="62" selection-end-line="37" selection-end-column="62" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="LSMDB.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/LSMDB.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="405">
-              <caret line="45" column="52" lean-forward="false" selection-start-line="45" selection-start-column="52" selection-end-line="45" selection-end-column="52" />
+            <state relative-caret-position="2985">
+              <caret line="348" column="44" lean-forward="true" selection-start-line="348" selection-start-column="44" selection-end-line="348" selection-end-column="44" />
               <folding>
                 <element signature="e#1688#1689#0" expanded="true" />
                 <element signature="e#1729#1730#0" expanded="true" />
                 <element signature="e#4798#4816#0" expanded="true" />
                 <element signature="method#put#2;class#LSMDB#0" expanded="false" />
                 <element signature="method#get#0;class#LSMDB#0" expanded="false" />
-                <element signature="method#close#0;class#LSMDB#0" expanded="false" />
                 <element signature="method#destory#0;class#LSMDB#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="HashMapTable.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/HashMapTable.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="150">
+              <caret line="23" column="63" lean-forward="true" selection-start-line="23" selection-start-column="63" selection-end-line="23" selection-end-column="63" />
+              <folding>
+                <element signature="method#appendTombstone#0;class#HashMapTable#0" expanded="false" />
+                <element signature="method#appendNewCompressed#0;class#HashMapTable#0" expanded="false" />
+                <element signature="method#getMapEntry#0;class#HashMapTable#0" expanded="false" />
+                <element signature="method#put#1;class#HashMapTable#0" expanded="false" />
+                <element signature="method#close#0;class#HashMapTable#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -76,8 +81,8 @@
       <file leaf-file-name="Level0Merger.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/merge/Level0Merger.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="153">
-              <caret line="40" column="23" lean-forward="true" selection-start-line="40" selection-start-column="23" selection-end-line="40" selection-end-column="23" />
+            <state relative-caret-position="510">
+              <caret line="45" column="67" lean-forward="true" selection-start-line="45" selection-start-column="67" selection-end-line="45" selection-end-column="67" />
               <folding>
                 <element signature="class#QueueElement#0;class#Level0Merger#0" expanded="false" />
               </folding>
@@ -98,25 +103,9 @@
       <file leaf-file-name="FCMapTable.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/FCMapTable.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="11">
+            <state relative-caret-position="810">
               <caret line="58" column="13" lean-forward="true" selection-start-line="58" selection-start-column="13" selection-end-line="58" selection-end-column="13" />
               <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="HashMapTable.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/HashMapTable.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="332">
-              <caret line="88" column="29" lean-forward="false" selection-start-line="88" selection-start-column="15" selection-end-line="88" selection-end-column="29" />
-              <folding>
-                <element signature="method#appendTombstone#0;class#HashMapTable#0" expanded="false" />
-                <element signature="method#appendNewCompressed#0;class#HashMapTable#0" expanded="false" />
-                <element signature="method#getMapEntry#0;class#HashMapTable#0" expanded="false" />
-                <element signature="method#put#1;class#HashMapTable#0" expanded="false" />
-                <element signature="method#close#0;class#HashMapTable#0" expanded="false" />
-              </folding>
             </state>
           </provider>
         </entry>
@@ -124,14 +113,44 @@
       <file leaf-file-name="AbstractMapTable.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/AbstractMapTable.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-505">
-              <caret line="83" column="40" lean-forward="true" selection-start-line="83" selection-start-column="40" selection-end-line="83" selection-end-column="40" />
+            <state relative-caret-position="255">
+              <caret line="31" column="60" lean-forward="true" selection-start-line="31" selection-start-column="60" selection-end-line="31" selection-end-column="60" />
               <folding>
                 <element signature="method#initLevelAndCreatedTime#0;class#AbstractMapTable#0" expanded="false" />
                 <element signature="method#getBackFileSize#0;class#AbstractMapTable#0" expanded="false" />
                 <element signature="method#markUsable#0;class#AbstractMapTable#0" expanded="false" />
                 <element signature="method#delete#0;class#AbstractMapTable#0" expanded="false" />
                 <element signature="method#ensureNotClosed#0;class#AbstractMapTable#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="BitCaskIndex.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/bitcask/BitCaskIndex.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="105">
+              <caret line="7" column="13" lean-forward="false" selection-start-line="7" selection-start-column="13" selection-end-line="7" selection-end-column="13" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="BitCask.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/bitcask/BitCask.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="442">
+              <caret line="231" column="17" lean-forward="false" selection-start-line="231" selection-start-column="17" selection-end-line="231" selection-end-column="17" />
+              <folding>
+                <element signature="method#BitCask#0;class#BitCask#0" expanded="false" />
+                <element signature="method#Init#0;class#BitCask#0" expanded="false" />
+                <element signature="method#loadIndex#0;class#BitCask#0" expanded="false" />
+                <element signature="method#checkRedoLog#0;class#BitCask#0" expanded="false" />
+                <element signature="method#clearAllRedoLog#0;class#BitCask#0" expanded="false" />
+                <element signature="method#get#0;class#BitCask#0" expanded="false" />
+                <element signature="method#readBytesFromFile#0;class#BitCask#0" expanded="false" />
+                <element signature="method#checkActiveFile#0;class#BitCask#0" expanded="false" />
+                <element signature="method#close#0;class#BitCask#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -247,8 +266,8 @@
         <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/HashMapTable.java" />
         <option value="$PROJECT_DIR$/src/test/benchMark/ReadWriteTest.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/ClientTest.java" />
-        <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/common/EngineRace.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/LSMDB.java" />
+        <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/common/EngineRace.java" />
       </list>
     </option>
   </component>
@@ -689,15 +708,16 @@
       <updated>1539163440425</updated>
       <workItem from="1539163441722" duration="21589000" />
       <workItem from="1540089369533" duration="72597000" />
-      <workItem from="1540453224234" duration="37740000" />
+      <workItem from="1540453224234" duration="39784000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="268293000" />
+    <option name="totallyTimeSpent" value="270337000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-178" y="-1057" width="1823" height="1057" extended-state="0" />
+    <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
@@ -708,7 +728,7 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32996973" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32883435" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3602422" sideWeight="0.5035318" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3602422" sideWeight="0.5035318" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.38244197" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -1015,13 +1035,6 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/wal/WALImpl.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="60">
-          <caret line="4" column="13" lean-forward="false" selection-start-line="4" selection-start-column="13" selection-end-line="4" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/lsmtree/BloomFilter.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="435">
@@ -1243,25 +1256,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/bitcask/BitCask.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-5">
-          <caret line="14" column="0" lean-forward="true" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
-          <folding>
-            <element signature="method#BitCask#0;class#BitCask#0" expanded="false" />
-            <element signature="method#Init#0;class#BitCask#0" expanded="false" />
-            <element signature="method#loadIndex#0;class#BitCask#0" expanded="false" />
-            <element signature="method#checkRedoLog#0;class#BitCask#0" expanded="false" />
-            <element signature="method#clearAllRedoLog#0;class#BitCask#0" expanded="false" />
-            <element signature="method#get#0;class#BitCask#0" expanded="false" />
-            <element signature="method#readBytesFromFile#0;class#BitCask#0" expanded="false" />
-            <element signature="method#checkActiveFile#0;class#BitCask#0" expanded="false" />
-            <element signature="method#writeBytesToFile#0;class#BitCask#0" expanded="false" />
-            <element signature="method#close#0;class#BitCask#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/lsmtree/AbstractTable.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="180">
@@ -1375,41 +1369,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/MMFMapTable.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1050">
-          <caret line="77" column="25" lean-forward="false" selection-start-line="77" selection-start-column="25" selection-end-line="77" selection-end-column="25" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/InMemIndex.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="30">
           <caret line="2" column="13" lean-forward="false" selection-start-line="2" selection-start-column="13" selection-end-line="2" selection-end-column="13" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/FCMapTable.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="11">
-          <caret line="58" column="13" lean-forward="true" selection-start-line="58" selection-start-column="13" selection-end-line="58" selection-end-column="13" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/HashMapTable.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="332">
-          <caret line="88" column="29" lean-forward="false" selection-start-line="88" selection-start-column="15" selection-end-line="88" selection-end-column="29" />
-          <folding>
-            <element signature="method#appendTombstone#0;class#HashMapTable#0" expanded="false" />
-            <element signature="method#appendNewCompressed#0;class#HashMapTable#0" expanded="false" />
-            <element signature="method#getMapEntry#0;class#HashMapTable#0" expanded="false" />
-            <element signature="method#put#1;class#HashMapTable#0" expanded="false" />
-            <element signature="method#close#0;class#HashMapTable#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1433,27 +1397,19 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/AbstractMapTable.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/MMFMapTable.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-505">
-          <caret line="83" column="40" lean-forward="true" selection-start-line="83" selection-start-column="40" selection-end-line="83" selection-end-column="40" />
-          <folding>
-            <element signature="method#initLevelAndCreatedTime#0;class#AbstractMapTable#0" expanded="false" />
-            <element signature="method#getBackFileSize#0;class#AbstractMapTable#0" expanded="false" />
-            <element signature="method#markUsable#0;class#AbstractMapTable#0" expanded="false" />
-            <element signature="method#delete#0;class#AbstractMapTable#0" expanded="false" />
-            <element signature="method#ensureNotClosed#0;class#AbstractMapTable#0" expanded="false" />
-          </folding>
+        <state relative-caret-position="1050">
+          <caret line="77" column="25" lean-forward="false" selection-start-line="77" selection-start-column="25" selection-end-line="77" selection-end-column="25" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/merge/Level0Merger.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/FCMapTable.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="153">
-          <caret line="40" column="23" lean-forward="true" selection-start-line="40" selection-start-column="23" selection-end-line="40" selection-end-column="23" />
-          <folding>
-            <element signature="class#QueueElement#0;class#Level0Merger#0" expanded="false" />
-          </folding>
+        <state relative-caret-position="810">
+          <caret line="58" column="13" lean-forward="true" selection-start-line="58" selection-start-column="13" selection-end-line="58" selection-end-column="13" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -1467,35 +1423,98 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/LSMDB.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="405">
-          <caret line="45" column="52" lean-forward="false" selection-start-line="45" selection-start-column="52" selection-end-line="45" selection-end-column="52" />
+        <state relative-caret-position="2985">
+          <caret line="348" column="44" lean-forward="true" selection-start-line="348" selection-start-column="44" selection-end-line="348" selection-end-column="44" />
           <folding>
             <element signature="e#1688#1689#0" expanded="true" />
             <element signature="e#1729#1730#0" expanded="true" />
             <element signature="e#4798#4816#0" expanded="true" />
             <element signature="method#put#2;class#LSMDB#0" expanded="false" />
             <element signature="method#get#0;class#LSMDB#0" expanded="false" />
-            <element signature="method#close#0;class#LSMDB#0" expanded="false" />
             <element signature="method#destory#0;class#LSMDB#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/common/EngineRace.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/merge/Level0Merger.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="12" column="14" lean-forward="true" selection-start-line="12" selection-start-column="14" selection-end-line="12" selection-end-column="14" />
+        <state relative-caret-position="510">
+          <caret line="45" column="67" lean-forward="true" selection-start-line="45" selection-start-column="67" selection-end-line="45" selection-end-column="67" />
           <folding>
-            <element signature="imports" expanded="true" />
+            <element signature="class#QueueElement#0;class#Level0Merger#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/HashMapTable.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="150">
+          <caret line="23" column="63" lean-forward="true" selection-start-line="23" selection-start-column="63" selection-end-line="23" selection-end-column="63" />
+          <folding>
+            <element signature="method#appendTombstone#0;class#HashMapTable#0" expanded="false" />
+            <element signature="method#appendNewCompressed#0;class#HashMapTable#0" expanded="false" />
+            <element signature="method#getMapEntry#0;class#HashMapTable#0" expanded="false" />
+            <element signature="method#put#1;class#HashMapTable#0" expanded="false" />
+            <element signature="method#close#0;class#HashMapTable#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/AbstractMapTable.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="31" column="60" lean-forward="true" selection-start-line="31" selection-start-column="60" selection-end-line="31" selection-end-column="60" />
+          <folding>
+            <element signature="method#initLevelAndCreatedTime#0;class#AbstractMapTable#0" expanded="false" />
+            <element signature="method#getBackFileSize#0;class#AbstractMapTable#0" expanded="false" />
+            <element signature="method#markUsable#0;class#AbstractMapTable#0" expanded="false" />
+            <element signature="method#delete#0;class#AbstractMapTable#0" expanded="false" />
+            <element signature="method#ensureNotClosed#0;class#AbstractMapTable#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/bitcask/BitCaskIndex.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="105">
+          <caret line="7" column="13" lean-forward="false" selection-start-line="7" selection-start-column="13" selection-end-line="7" selection-end-column="13" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/bitcask/BitCask.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="442">
+          <caret line="231" column="17" lean-forward="false" selection-start-line="231" selection-start-column="17" selection-end-line="231" selection-end-column="17" />
+          <folding>
+            <element signature="method#BitCask#0;class#BitCask#0" expanded="false" />
+            <element signature="method#Init#0;class#BitCask#0" expanded="false" />
+            <element signature="method#loadIndex#0;class#BitCask#0" expanded="false" />
+            <element signature="method#checkRedoLog#0;class#BitCask#0" expanded="false" />
+            <element signature="method#clearAllRedoLog#0;class#BitCask#0" expanded="false" />
+            <element signature="method#get#0;class#BitCask#0" expanded="false" />
+            <element signature="method#readBytesFromFile#0;class#BitCask#0" expanded="false" />
+            <element signature="method#checkActiveFile#0;class#BitCask#0" expanded="false" />
+            <element signature="method#close#0;class#BitCask#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/test/benchMark/ReadWriteTest.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="285">
-          <caret line="30" column="46" lean-forward="true" selection-start-line="30" selection-start-column="46" selection-end-line="30" selection-end-column="46" />
+        <state relative-caret-position="397">
+          <caret line="47" column="17" lean-forward="true" selection-start-line="47" selection-start-column="17" selection-end-line="47" selection-end-column="17" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/common/EngineRace.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="16" column="25" lean-forward="false" selection-start-line="16" selection-start-column="25" selection-end-line="16" selection-end-column="25" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
