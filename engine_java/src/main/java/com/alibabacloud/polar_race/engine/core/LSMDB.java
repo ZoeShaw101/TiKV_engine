@@ -347,6 +347,7 @@ public class LSMDB implements Closeable {
 
     @Override
     public void close() throws IOException {
+        logger.info("正在关闭存储引擎...");
         if (closed) return;
 
         fileStatsCollector.setStop();
@@ -381,7 +382,7 @@ public class LSMDB implements Closeable {
         }
 
         closed = true;
-        logger.info("数据库正常关闭！");
+        logger.info("引擎正常关闭！");
     }
 
     /**
