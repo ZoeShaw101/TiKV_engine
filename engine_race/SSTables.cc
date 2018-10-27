@@ -26,11 +26,11 @@ namespace polar_race {
 		if (!DirExists(temp_path_) && 0 != mkdir(temp_path_.c_str(), 0755)) {
 			return kIOError;
 		}
-		std::vector<std::string> temp_files_name;								//ÏÂÃæÊÇÇå¿Õtemp_path_ÎÄ¼þ¼Ð
+		std::vector<std::string> temp_files_name;								//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½temp_path_ï¿½Ä¼ï¿½ï¿½ï¿½
 		if (0 != GetDirFiles(temp_path_, &temp_files_name)) {
 			return kIOError;
 		}
-		if (temp_files_name.empty()) {											//ÒÑ¾­ÊÇ¿ÕµÄÖ±½Ó·µ»Ø
+		if (temp_files_name.empty()) {											//ï¿½Ñ¾ï¿½ï¿½Ç¿Õµï¿½Ö±ï¿½Ó·ï¿½ï¿½ï¿½
 			return kSucc;
 		}
 		for (auto file_name : temp_files_name) {
@@ -60,40 +60,40 @@ namespace polar_race {
 
 	RetCode SSTables::Merge() {
 		std::vector<std::string> files_name;
-		if (0 != GetDirFiles(dir_path_, &files_name)) {					//»ñÈ¡ËùÓÐµÄÊý¾ÝÎÄ¼þ
+		if (0 != GetDirFiles(dir_path_, &files_name)) {					//ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ðµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
 			return kIOError;
 		}
-		if (files_name.size() <= 1) {									//Èç¹ûÎÄ¼þÊýÁ¿Ð¡ÓÚµÈÓÚ1¾ÍÖ±½Ó·µ»Ø¼´¿É
+		if (files_name.size() <= 1) {									//ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½Úµï¿½ï¿½ï¿½1ï¿½ï¿½Ö±ï¿½Ó·ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½
 			return kSucc;
 		}
-		sort(files_name.begin(),files_name.end());						//¶ÔÕâÐ©Êý¾ÝÎÄ¼þ°´ÕÕÎÄ¼þÃûÅÅÐò
+		sort(files_name.begin(),files_name.end());						//ï¿½ï¿½ï¿½ï¿½Ð©ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		std::vector<std::ifstream *> files_ptr;
-		for (unsigned int i = 0; i < files_name.size(); ++i) {			//ÕâÐ©Ö¸ÕëµÄË³ÐòÊÇ°´ÕÕËùÖ¸ÎÄ¼þÃûÅÅÐòµÄ
+		for (unsigned int i = 0; i < files_name.size(); ++i) {			//ï¿½ï¿½Ð©Ö¸ï¿½ï¿½ï¿½Ë³ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			std::ifstream* ptr = new std::ifstream(dir_path_ + "/" + files_name[i]);
 			files_ptr.push_back(ptr);
 		}
 		std::map<std::string, std::map<int , LogItem>> temp;
 
-		for (unsigned int i = 0; i < files_ptr.size(); ++i) {			//ÏÈ¹¹Ôì³õÊ¼µÄtemp»º´æ	
+		for (unsigned int i = 0; i < files_ptr.size(); ++i) {			//ï¿½È¹ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½tempï¿½ï¿½ï¿½ï¿½	
 			if (files_ptr[i]->is_open()) {
 				std::string line_temp;
-				if (getline(*files_ptr[i], line_temp)) {				//[]ÓÅÏÈ¼¶¸ßÓÚ*£¬ËùÒÔ²»ÓÃ¼ÓÀ¨ºÅ
+				if (getline(*files_ptr[i], line_temp)) {				//[]ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½*ï¿½ï¿½ï¿½ï¿½ï¿½Ô²ï¿½ï¿½Ã¼ï¿½ï¿½ï¿½ï¿½ï¿½
 					if (line_temp.empty()) {
 						files_ptr[i]->close();
 						continue;
 					}
-					LogItem data_temp(line_temp);						//ÎÄ¼þ²»ÊÇ¿ÕµÄ
+					LogItem data_temp(line_temp);						//ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ç¿Õµï¿½
 					temp[data_temp.GetKey().ToString()].insert(std::pair<int, LogItem>(i, data_temp));
 				}
-				else {													//ÎÄ¼þÊÇ¿ÕµÄ¾Í¹Ø±Õ°É
+				else {													//ï¿½Ä¼ï¿½ï¿½Ç¿ÕµÄ¾Í¹Ø±Õ°ï¿½
 					files_ptr[i]->close();
 				}
 			}
 		}
 		while (true) {
 			if (!temp.empty()) {
-				merge[temp.begin()->first] = (--(temp.begin()->second.end()))->second;		//¼ÓÈëmerge
-				for (auto it : temp.begin()->second) {										//¶ÁÐÂÖµ½øÈëtemp
+				merge[temp.begin()->first] = (--(temp.begin()->second.end()))->second;		//ï¿½ï¿½ï¿½ï¿½merge
+				for (auto it : temp.begin()->second) {										//ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½temp
 					std::string line_temp;
 					if (getline(*files_ptr[it.first], line_temp)) {
 						if (line_temp.empty()) {
@@ -107,32 +107,32 @@ namespace polar_race {
 						files_ptr[it.first]->close();
 					}
 				}
-				temp.erase(temp.begin());													//É¾³ýÒÑ¾­ÅÅÐòºÃµÄ¾ÉÖµ
-				if (merge.size() == length_) {												//Èç¹ûmergeÂúÁË¾ÍÐ´ÎÄ¼þ
+				temp.erase(temp.begin());													//É¾ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ÃµÄ¾ï¿½Öµ
+				if (merge.size() == length_) {												//ï¿½ï¿½ï¿½mergeï¿½ï¿½ï¿½Ë¾ï¿½Ð´ï¿½Ä¼ï¿½
 					Write();
 					merge.clear();
 				}
 			}
 			else {
-				if (!merge.empty()) {														//×îºó°ÑÄÚ´æÁô´æµÄÌõÄ¿´æ´¢µ½ÎÄ¼þ
+				if (!merge.empty()) {														//ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½æ´¢ï¿½ï¿½ï¿½Ä¼ï¿½
 					Write();
 					merge.clear();
 				}
-				break;																		//mergeÍê±ÏÌø³öÑ­»·
+				break;																		//mergeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½
 			}
 		}
-		for (unsigned int i = 0; i < files_ptr.size(); ++i) {								//ÊÍ·ÅnewµÄÄÚ´æ
+		for (unsigned int i = 0; i < files_ptr.size(); ++i) {								//ï¿½Í·ï¿½newï¿½ï¿½ï¿½Ú´ï¿½
 			delete files_ptr[i];
 		}
 		rename(temp_path_.c_str(),"middle");
 		rename(dir_path_.c_str(), temp_path_.c_str());
 		rename("middle",dir_path_.c_str());
 
-		std::vector<std::string> temp_files_name;								//ÏÂÃæÊÇÇå¿Õtemp_path_ÎÄ¼þ¼Ð
+		std::vector<std::string> temp_files_name;								//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½temp_path_ï¿½Ä¼ï¿½ï¿½ï¿½
 		if (0 != GetDirFiles(temp_path_, &temp_files_name)) {
 			return kIOError;
 		}
-		if (temp_files_name.empty()) {											//ÒÑ¾­ÊÇ¿ÕµÄÖ±½Ó·µ»Ø
+		if (temp_files_name.empty()) {											//ï¿½Ñ¾ï¿½ï¿½Ç¿Õµï¿½Ö±ï¿½Ó·ï¿½ï¿½ï¿½
 			return kSucc;
 		}
 		for (auto file_name : temp_files_name) {
@@ -144,17 +144,21 @@ namespace polar_race {
 
 	RetCode SSTables::Write() {
 		if (merge.empty()) {
-			return kNotSupported;	//²»Ö§³ÖÐ´¿Õmerge
+			return kNotSupported;	//ï¿½ï¿½Ö§ï¿½ï¿½Ð´ï¿½ï¿½merge
 		}
 		std::string result;
 		for (auto it : merge) {
 			result.append(it.second.GetItem());
 			result.append("\n");
 		}
-		std::stringstream ss;
-		auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-		ss << std::put_time(std::localtime(&t), "%Y%m%d%H%M%S");
-		std::string filename = ss.str();						//Éú³ÉÎÄ¼þÃû
+		// std::stringstream ss;
+		// auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		// ss << std::put_time(std::localtime(&t), "%Y%m%d%H%M%S");
+		// std::string filename = ss.str();						//ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
+		time_t t = time(0);
+		char tmpBuf[255];
+		strftime(tmpBuf, 255, "%Y%m%d%H%M%S", localtime(&t)); //format date and time. 
+		std::string filename(tmpBuf);
 		filename = temp_path_ + "/" + filename + "_" + merge.begin()->first;
 		std::ofstream output(filename);
 		output << result;
@@ -164,25 +168,25 @@ namespace polar_race {
 	}
 
 	RetCode SSTables::Read(const std::string& key, std::string* value,int value_length) {
-		//´ÓÎÄ¼þÖÐ¶ÁÈ¡ÏëÒªµÄÖµ
+		//ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Ð¶ï¿½È¡ï¿½ï¿½Òªï¿½ï¿½Öµ
 		std::vector<std::string> files_name;
-		if (0 != GetDirFiles(dir_path_, &files_name)) {					//»ñÈ¡ËùÓÐµÄÊý¾ÝÎÄ¼þ
+		if (0 != GetDirFiles(dir_path_, &files_name)) {					//ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ðµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
 			return kIOError;
 		}
-		if (files_name.size() <= 0) {									//Èç¹ûÎÄ¼þÊýÁ¿Ð¡ÓÚµÈÓÚ0¾ÍÖ±½Ó·µ»Ø¼´¿É
+		if (files_name.size() <= 0) {									//ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½Úµï¿½ï¿½ï¿½0ï¿½ï¿½Ö±ï¿½Ó·ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½
 			return kNotFound;
 		}
-		if (files_name.size() == 1 ) {									//½öÓÐÒ»¸öÎÄ¼þ¾ÍÕÒÕâÒ»¸öÎÄ¼þ
-			if (key < files_name[0].substr(15)) {						//ÕÒ²»µ½
+		if (files_name.size() == 1 ) {									//ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ä¼ï¿½
+			if (key < files_name[0].substr(15)) {						//ï¿½Ò²ï¿½ï¿½ï¿½
 				return kNotFound;
 			}
 			else {
-				//ÎÄ¼þÄÚ¶þ·Ö²éÕÒ
+				//ï¿½Ä¼ï¿½ï¿½Ú¶ï¿½ï¿½Ö²ï¿½ï¿½ï¿½
 				std::ifstream input;
 				input.open(dir_path_ + "/" + files_name[0]);
 				input.seekg(0, std::fstream::end);
 				unsigned int n = input.tellg();
-				unsigned int row_length = key.size() + value_length + 2;		//¼Ó2ÊÇÒòÎª»»ÐÐ·ûµÄ´æÔÚ
+				unsigned int row_length = key.size() + value_length + 2;		//ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½Ð·ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
 				unsigned int start = 0;
 				unsigned int end = n / row_length;
 				std::string res = "";
@@ -199,7 +203,7 @@ namespace polar_race {
 						end = mid - 1;
 					}
 					else {
-						res = temp.substr(key.size());		//»ñÈ¡value
+						res = temp.substr(key.size());		//ï¿½ï¿½È¡value
 						break;
 					}
 				}
@@ -210,9 +214,9 @@ namespace polar_race {
 				return kSucc;
 			}
 		}
-		sort(files_name.begin(), files_name.end());						//ÎÄ¼þÊýÄ¿´óÓÚÒ»¾ÍµÃÅÅÐòÖ®ºóÕÒ
-		//¶þ·Ö¶¨Î»Òª²éÕÒµÄÎÄ¼þ
-		//end¾ÍÊÇÎÒÃÇÏëÒª¶¨Î»µÄÎÄ¼þ
+		sort(files_name.begin(), files_name.end());						//ï¿½Ä¼ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½Ò»ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½ï¿½ï¿½
+		//ï¿½ï¿½ï¿½Ö¶ï¿½Î»Òªï¿½ï¿½ï¿½Òµï¿½ï¿½Ä¼ï¿½
+		//endï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½Î»ï¿½ï¿½ï¿½Ä¼ï¿½
 		int file_start = 0;
 		int file_end = files_name.size() - 1;
 		int file_mid;
@@ -225,12 +229,12 @@ namespace polar_race {
 				file_end = file_mid - 1;
 			}
 		}
-		//ÎÄ¼þÄÚ¶þ·Ö²éÕÒ
+		//ï¿½Ä¼ï¿½ï¿½Ú¶ï¿½ï¿½Ö²ï¿½ï¿½ï¿½
 		std::ifstream input;
 		input.open(dir_path_+"/"+files_name[file_end]);
 		input.seekg(0, std::fstream::end);
 		unsigned int n = input.tellg();
-		unsigned int row_length = key.size() + value_length + 1;		//¼Ó1ÊÇÒòÎª»»ÐÐ·ûµÄ´æÔÚ(Êµ²âÊÇ¼Ó1)
+		unsigned int row_length = key.size() + value_length + 1;		//ï¿½ï¿½1ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½Ð·ï¿½ï¿½Ä´ï¿½ï¿½ï¿½(Êµï¿½ï¿½ï¿½Ç¼ï¿½1)
 		unsigned int start = 0;
 		unsigned int end = n / row_length;
 		std::string res="";
@@ -247,7 +251,7 @@ namespace polar_race {
 				end = mid - 1;
 			}
 			else {
-				res = temp.substr(key.size());		//»ñÈ¡value
+				res = temp.substr(key.size());		//ï¿½ï¿½È¡value
 				break;
 			}
 		}
