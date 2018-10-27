@@ -51,7 +51,7 @@ public class LSMDB implements Closeable {
 
     @SuppressWarnings("unchecked")
     public LSMDB(String dir, DBConfig config) {
-        logger.info("初始化DB配置...");
+        logger.info("初始化DB配置...，现在内存大小：" + Runtime.getRuntime().freeMemory());
         this.dir = dir;
         this.config = config;
 
