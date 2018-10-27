@@ -33,11 +33,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="EngineRace.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="EngineRace.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/common/EngineRace.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="240">
-              <caret line="16" column="25" lean-forward="false" selection-start-line="16" selection-start-column="25" selection-end-line="16" selection-end-column="25" />
+            <state relative-caret-position="510">
+              <caret line="34" column="25" lean-forward="true" selection-start-line="34" selection-start-column="25" selection-end-line="34" selection-end-column="25" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -136,21 +136,18 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="BitCask.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="BitCask.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/bitcask/BitCask.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="442">
-              <caret line="231" column="17" lean-forward="false" selection-start-line="231" selection-start-column="17" selection-end-line="231" selection-end-column="17" />
+            <state relative-caret-position="2531">
+              <caret line="283" column="36" lean-forward="false" selection-start-line="283" selection-start-column="36" selection-end-line="283" selection-end-column="36" />
               <folding>
                 <element signature="method#BitCask#0;class#BitCask#0" expanded="false" />
                 <element signature="method#Init#0;class#BitCask#0" expanded="false" />
-                <element signature="method#loadIndex#0;class#BitCask#0" expanded="false" />
                 <element signature="method#checkRedoLog#0;class#BitCask#0" expanded="false" />
                 <element signature="method#clearAllRedoLog#0;class#BitCask#0" expanded="false" />
                 <element signature="method#get#0;class#BitCask#0" expanded="false" />
-                <element signature="method#readBytesFromFile#0;class#BitCask#0" expanded="false" />
                 <element signature="method#checkActiveFile#0;class#BitCask#0" expanded="false" />
-                <element signature="method#close#0;class#BitCask#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -255,7 +252,6 @@
         <option value="$PROJECT_DIR$/pom.xml" />
         <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/lsmtree/Level.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/lsmtree/MergeOps.java" />
-        <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/bitcask/BitCask.java" />
         <option value="$PROJECT_DIR$/jvm_parameters" />
         <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/utils/NewObjectOutputStream.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/utils/FileHelper.java" />
@@ -268,6 +264,7 @@
         <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/ClientTest.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/LSMDB.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/common/EngineRace.java" />
+        <option value="$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/bitcask/BitCask.java" />
       </list>
     </option>
   </component>
@@ -708,12 +705,12 @@
       <updated>1539163440425</updated>
       <workItem from="1539163441722" duration="21589000" />
       <workItem from="1540089369533" duration="72597000" />
-      <workItem from="1540453224234" duration="39784000" />
+      <workItem from="1540453224234" duration="39980000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="270337000" />
+    <option name="totallyTimeSpent" value="270533000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-178" y="-1057" width="1823" height="1057" extended-state="0" />
@@ -1022,7 +1019,7 @@
           <option name="timeStamp" value="198" />
         </line-breakpoint>
       </breakpoints>
-      <option name="time" value="199" />
+      <option name="time" value="200" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="Application">
@@ -1482,24 +1479,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/bitcask/BitCask.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="442">
-          <caret line="231" column="17" lean-forward="false" selection-start-line="231" selection-start-column="17" selection-end-line="231" selection-end-column="17" />
-          <folding>
-            <element signature="method#BitCask#0;class#BitCask#0" expanded="false" />
-            <element signature="method#Init#0;class#BitCask#0" expanded="false" />
-            <element signature="method#loadIndex#0;class#BitCask#0" expanded="false" />
-            <element signature="method#checkRedoLog#0;class#BitCask#0" expanded="false" />
-            <element signature="method#clearAllRedoLog#0;class#BitCask#0" expanded="false" />
-            <element signature="method#get#0;class#BitCask#0" expanded="false" />
-            <element signature="method#readBytesFromFile#0;class#BitCask#0" expanded="false" />
-            <element signature="method#checkActiveFile#0;class#BitCask#0" expanded="false" />
-            <element signature="method#close#0;class#BitCask#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/test/benchMark/ReadWriteTest.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="397">
@@ -1510,10 +1489,25 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/common/EngineRace.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="16" column="25" lean-forward="false" selection-start-line="16" selection-start-column="25" selection-end-line="16" selection-end-column="25" />
+        <state relative-caret-position="510">
+          <caret line="34" column="25" lean-forward="true" selection-start-line="34" selection-start-column="25" selection-end-line="34" selection-end-column="25" />
           <folding>
             <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/bitcask/BitCask.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2531">
+          <caret line="283" column="36" lean-forward="false" selection-start-line="283" selection-start-column="36" selection-end-line="283" selection-end-column="36" />
+          <folding>
+            <element signature="method#BitCask#0;class#BitCask#0" expanded="false" />
+            <element signature="method#Init#0;class#BitCask#0" expanded="false" />
+            <element signature="method#checkRedoLog#0;class#BitCask#0" expanded="false" />
+            <element signature="method#clearAllRedoLog#0;class#BitCask#0" expanded="false" />
+            <element signature="method#get#0;class#BitCask#0" expanded="false" />
+            <element signature="method#checkActiveFile#0;class#BitCask#0" expanded="false" />
           </folding>
         </state>
       </provider>

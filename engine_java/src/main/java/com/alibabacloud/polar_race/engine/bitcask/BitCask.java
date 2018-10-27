@@ -28,13 +28,14 @@ public class BitCask {
     private Logger logger = Logger.getLogger(BitCask.class);
 
     private final String dbName;  //数据库名
-    private static final long DEFAULT_ACTIVE_FILE_SIZE = 1024 * 1024 * 100;  //活跃文件最大大小
+    private static final long DEFAULT_ACTIVE_FILE_SIZE = 1024 * 1024 * 128;  //活跃文件最大大小
     private static final long DEFAULT_INDEX_FILE_SIZE = 4096;
     private static final String INDEX_DIR = "/index";
     private static final String DATA_DIR = "/data";
     private static final String LOG_DIR = "/log";
     private static final String HINT_FILE_NAME = "/index_file";  //索引文件
     private static final String LOG_FILE_PATH = "/redoLog_file";
+    private static final boolean DEBUG_ENABLE = false;
 
     private AtomicLong activeFileId = new AtomicLong(0);  //活跃文件
     private AtomicLong activeFileOffset = new AtomicLong(0);  //记录活跃文件的当前写入位置
@@ -184,7 +185,9 @@ public class BitCask {
         try {
             file.seek(index.getValueOffset());
             file.read(bytes);
-            logger.info("从数据文件" + activeFileId.get() + "读出为value=" + new String(bytes) + "的数据");
+            if (DEBUG_ENABLE) {
+                logger.info("从数据文件" + activeFileId.get() + "读出为value=" + new String(bytes) + "的数据");
+            }
         } catch (IOException e) {
             bytes = null;
             throw new EngineException(RetCodeEnum.IO_ERROR, "读取物理数据文件出错!");
@@ -203,7 +206,9 @@ public class BitCask {
         String redoLogPath = dbName + LOG_DIR + LOG_FILE_PATH;
         try {
             FileHelper.writeObjectToFile(redoLog, redoLogPath);
-            logger.info("操作写入redoLog: RedoLog=" + redoLog.toString());
+            if (DEBUG_ENABLE) {
+                logger.info("操作写入redoLog: RedoLog=" + redoLog.toString());
+            }
         } catch (Exception e) {
             logger.error("写入redoLog出错!", e);
         }
@@ -213,7 +218,9 @@ public class BitCask {
         String filePath = dir + "/" + String.valueOf(activeFileId.get()) + ".data";
         File file = new File(filePath);
         if (file.length() >= DEFAULT_ACTIVE_FILE_SIZE) {
-            logger.info("活跃文件大小超过限制，创建新的活跃文件");
+            if (DEBUG_ENABLE) {
+                logger.info("活跃文件大小超过限制，创建新的活跃文件");
+            }
             activeFileId.incrementAndGet();
             String newFilePath = dir + "/" + String.valueOf(activeFileId.get()) + ".data";
             if (!FileHelper.fileExists(filePath)) {
@@ -239,8 +246,10 @@ public class BitCask {
             activeFileOffset.compareAndSet(activeFileOffset.get(), offset);
             file.seek(offset);
             file.write(bytes);
-            logger.info("向数据文件" +  activeFileId.get() + " , offset=" + activeFileOffset.get()
-                    + " 写入key=" + new String(key) +", value=" + new String(bytes) + "的数据");
+            if (DEBUG_ENABLE) {
+                logger.info("向数据文件" + activeFileId.get() + " , offset=" + activeFileOffset.get()
+                        + " 写入key=" + new String(key) + ", value=" + new String(bytes) + "的数据");
+            }
             updateIndex(key, bytes);
         } catch (IOException e) {
             throw new EngineException(RetCodeEnum.IO_ERROR, "写物理数据文件出错!");
@@ -263,7 +272,9 @@ public class BitCask {
         this._indexer.put(new KeyWapper(key), index);
         String filePath = dbName + INDEX_DIR + HINT_FILE_NAME;
         FileHelper.writeObjectToFile(index, filePath);
-        logger.info("写入索引文件：index=" + index.toString());
+        if (DEBUG_ENABLE) {
+            logger.info("写入索引文件：index=" + index.toString());
+        }
     }
 
 
