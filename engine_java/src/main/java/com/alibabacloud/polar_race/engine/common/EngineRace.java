@@ -10,11 +10,11 @@ import org.apache.log4j.Logger;
 public class EngineRace extends AbstractEngine {
 
 	private Logger logger = Logger.getLogger(EngineRace.class);
-	private LSMDB db;
+	private LSMTree db;
 
 	@Override
 	public void open(String path) throws EngineException {
-		db = new LSMDB(path);
+		db = new LSMTree(path);
 	}
 	
 	@Override
