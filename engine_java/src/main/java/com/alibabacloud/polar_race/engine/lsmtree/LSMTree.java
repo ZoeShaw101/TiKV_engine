@@ -37,10 +37,10 @@ public class LSMTree {
     static final int TREE_FANOUT = 4;  //每层level的sstable个数
     static final int THREAD_COUNT = 4;
     static final int KEY_BYTE_SIZE = 8;  //4B
-    static final int VALUE_BYTE_SIZE = 4000;   //4KB
-    static final int ENTRY_BYTE_SIZE = 4008;
-    static final int BUFFER_NUM_BLOCKS = 2;
-    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 10;  //每个SSTable的BLOCK大小
+    static final int VALUE_BYTE_SIZE = 4096;   //4KB
+    static final int ENTRY_BYTE_SIZE = 4104;
+    static final int BUFFER_NUM_BLOCKS = 4;
+    static final int BLOCK_SIZE = ENTRY_BYTE_SIZE * 1000;  //每个SSTable的BLOCK大小
     static final int BUFFER_MAX_ENTRIES = BUFFER_NUM_BLOCKS * BLOCK_SIZE / ENTRY_BYTE_SIZE;  //最大页数 * 每页大小 ／ Entry大小 => 500个entry
     static final double FALSE_POSITIVE_PROBABILITY = 0.0001;
 

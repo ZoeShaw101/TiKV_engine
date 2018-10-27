@@ -19,7 +19,7 @@ public class ReadWriteTest {
 
     private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
     private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
-    private final static int ENTRY_NUM = 100;
+    private final static int ENTRY_NUM = 1000;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
     private static EngineRace engineRace = new EngineRace();
@@ -72,10 +72,10 @@ public class ReadWriteTest {
             try {
                 byte[] readVal = engineRace.read(key);
                 if (readVal == null || readVal.length == 0) {
-                    //logger.error("没找到key=" + new String(key));
+                    logger.error("没找到key=" + new String(key));
                     cnt++;
                 } else if (!Arrays.equals(readVal, kvs.get(key))) {
-                    //logger.error("查找出的value值错误");
+                    logger.error("查找出的value值错误");
                     cnt++;
                 }
             } catch (Exception e) {
