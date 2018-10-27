@@ -78,7 +78,9 @@ public class BitCask {
             FileHelper.createDir(dbName + DATA_DIR);
         } else {
             activeFileId.set(FileHelper.findActiveFileId(dbName + DATA_DIR));
-            logger.info("当前活跃文件id：" + activeFileId.get());
+            if (DEBUG_ENABLE) {
+                logger.info("当前活跃文件id：" + activeFileId.get());
+            }
         }
         final String redoLogPath = dbName + LOG_DIR + LOG_FILE_PATH;
         if (!FileHelper.fileExists(dbName + LOG_DIR)) {
@@ -99,7 +101,9 @@ public class BitCask {
             if (obj == null) continue;
             BitCaskIndex index = (BitCaskIndex) obj;
             _indexer.put(new KeyWapper(index.getKey()), index);
-            logger.debug("加载索引：index=" + index.toString());
+            if (DEBUG_ENABLE) {
+                logger.debug("加载索引：index=" + index.toString());
+            }
         }
     }
 
