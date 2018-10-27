@@ -163,7 +163,6 @@ namespace polar_race {
 		std::ofstream output(filename);
 		output << result;
 		output.close();
-		sleep(1);
 		return kSucc;
 	}
 
