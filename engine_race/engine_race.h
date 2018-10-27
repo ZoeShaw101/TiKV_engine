@@ -12,7 +12,7 @@ namespace polar_race {
 	public:
 		static RetCode Open(const std::string& name, Engine** eptr);
 
-		explicit EngineRace(const std::string& dir,int size=200) :dir_path_(dir),data_path_(dir+"/from"),log_path_(dir + "/redolog"),log_store_(dir+"/redolog" ), sstables_(dir+"/from",dir+"/to",size),memtable_max_size_(size){
+		explicit EngineRace(const std::string& dir,int size=500000) :dir_path_(dir),data_path_(dir+"/from"),log_path_(dir + "/redolog"),log_store_(dir+"/redolog" ), sstables_(dir+"/from",dir+"/to",size),memtable_max_size_(size){
 			memtable_.clear();
 		}
 
