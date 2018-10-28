@@ -36,8 +36,8 @@ public class HashMapTable extends AbstractMapTable {
     public HashMapTable(String dir, short shard, int level, long createdTime)
             throws IOException {
         super(dir, shard, level, createdTime);
-        mapIndexAndDataFiles();
-        initToAppendIndexAndOffset();
+        mapIndexAndDataFiles();   //todo:先写入数据文件，再将索引写入索引文件内存映射
+        initToAppendIndexAndOffset();  //更新offset
     }
 
     // Load existing
