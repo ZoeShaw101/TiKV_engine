@@ -19,7 +19,7 @@ public class HashMapTable extends AbstractMapTable {
 
     private AtomicBoolean immutable = new AtomicBoolean(true);
 
-    private ConcurrentHashMap<ByteArrayWrapper, InMemIndex> hashMap;
+    private ConcurrentHashMap<ByteArrayWrapper, InMemIndex> hashMap;   //内存索引
     protected ThreadLocalByteBuffer localDataMappedByteBuffer;
     protected ThreadLocalByteBuffer localIndexMappedByteBuffer;
 
