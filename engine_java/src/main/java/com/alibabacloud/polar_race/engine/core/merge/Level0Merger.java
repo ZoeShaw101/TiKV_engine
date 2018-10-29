@@ -49,8 +49,7 @@ public class Level0Merger extends Thread {
                     log.info("Start running level 0 merge thread at " + DateFormatter.formatCurrentDate());
                     log.info("Current queue size at level 0 is " + levelQueue0.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
 
-                    List<BufferPoolMXBean> pools = ManagementFactory.getPlatformMXBeans(BufferPoolMXBean.class);  //查看堆外内存
-
+                    //List<BufferPoolMXBean> pools = ManagementFactory.getPlatformMXBeans(BufferPoolMXBean.class);  //查看堆外内存
 
                     long start = System.nanoTime();
                     LevelQueue levelQueue1 = levelQueueList.get(LSMDB.LEVEL1);
