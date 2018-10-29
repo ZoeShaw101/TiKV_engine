@@ -106,14 +106,18 @@ public class Level1Merger extends Thread {
         AbstractSortedMapTable sortedMapTable = new FCMapTable(dir, shard, LSMDB.LEVEL2, System.nanoTime(), (int)expectedInsertions);
 
         PriorityQueue<QueueElement> pq = new PriorityQueue<QueueElement>();
+
         // build initial heap
+        QueueElement qe;
+        IMapEntry me;
+
         for(AbstractMapTable table : tables) {
-            QueueElement qe = new QueueElement();
+            qe = new QueueElement();
             qe.sortedMapTable = table;
             qe.size = qe.sortedMapTable.getAppendedSize();
             qe.index = 0;
             qe.queue = new LinkedList<IMapEntry>();
-            IMapEntry me = qe.getNextMapEntry();
+            me = qe.getNextMapEntry();
             if (me != null) {
                 qe.key = me.getKey();
                 qe.mapEntry = me;
@@ -122,14 +126,18 @@ public class Level1Merger extends Thread {
             }
         }
 
+        System.gc();
+
         LinkedList<IMapEntry> targetCacheQueue = new LinkedList<IMapEntry>();
         // merge sort
+        QueueElement qe1, qe2;
+        IMapEntry mapEntry;
         while(pq.size() > 0) {
-            QueueElement qe1 = pq.poll();
+            qe1 = pq.poll();
             // remove old/stale entries
             while(pq.peek() != null && qe1.keyHash == pq.peek().keyHash && BytesUtil.KeyComparator(qe1.key, pq.peek().key) == 0) {
-                QueueElement qe2 = pq.poll();
-                IMapEntry me = qe2.getNextMapEntry();
+                qe2 = pq.poll();
+                me = qe2.getNextMapEntry();
                 if (me != null) {
                     qe2.key = me.getKey();
                     qe2.mapEntry = me;
@@ -143,7 +151,7 @@ public class Level1Merger extends Thread {
             }
             if (targetCacheQueue.size() >= CACHED_MAP_ENTRIES * DEFAULT_MERGE_WAYS) {
                 while(targetCacheQueue.size() > 0) {
-                    IMapEntry mapEntry = targetCacheQueue.poll();
+                    mapEntry = targetCacheQueue.poll();
                     byte[] value = mapEntry.getValue();
                     // disk space optimization
                     if (mapEntry.isExpired()) {
@@ -153,7 +161,7 @@ public class Level1Merger extends Thread {
                             mapEntry.getCreatedTime(), mapEntry.isDeleted(), mapEntry.isCompressed());
                 }
             }
-            IMapEntry me = qe1.getNextMapEntry();
+            me = qe1.getNextMapEntry();
             if (me != null) {
                 qe1.key = me.getKey();
                 qe1.mapEntry = me;
@@ -162,9 +170,11 @@ public class Level1Merger extends Thread {
             }
         }
 
+        System.gc();
+
         // remaining cached entries
         while(targetCacheQueue.size() > 0) {
-            IMapEntry mapEntry = targetCacheQueue.poll();
+            mapEntry = targetCacheQueue.poll();
             byte[] value = mapEntry.getValue();
             // disk space optimization
             if (mapEntry.isExpired()) {
@@ -205,6 +215,7 @@ public class Level1Merger extends Thread {
             table.close();
             table.delete();
         }
+        System.gc();
     }
 
     public void setStop() {

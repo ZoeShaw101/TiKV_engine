@@ -90,12 +90,16 @@ public class Level0Merger extends Thread {
         MMFMapTable sortedMapTable = new MMFMapTable(dir, shard, LSMDB.LEVEL1, System.nanoTime(), expectedInsertions, ways);
 
         PriorityQueue<QueueElement> pq = new PriorityQueue<QueueElement>();
+
         // build initial heap
+        QueueElement qe;
+        List<Map.Entry<ByteArrayWrapper, InMemIndex>> list;
+        Map.Entry<ByteArrayWrapper, InMemIndex> me;
         for (HashMapTable table : tables) {
-            QueueElement qe = new QueueElement();
+            qe = new QueueElement();
             final HashMapTable hmTable = table;
             qe.hashMapTable = hmTable;
-            List<Map.Entry<ByteArrayWrapper, InMemIndex>> list = new ArrayList<Map.Entry<ByteArrayWrapper, InMemIndex>>(qe.hashMapTable.getEntrySet());
+            list = new ArrayList<Map.Entry<ByteArrayWrapper, InMemIndex>>(qe.hashMapTable.getEntrySet());
             Collections.sort(list, new Comparator<Map.Entry<ByteArrayWrapper, InMemIndex>>() {
 
                 @Override
@@ -121,7 +125,7 @@ public class Level0Merger extends Thread {
             });
             qe.iterator = list.iterator();
             if (qe.iterator.hasNext()) {
-                Map.Entry<ByteArrayWrapper, InMemIndex> me = qe.iterator.next();
+                me = qe.iterator.next();
                 qe.key = me.getKey().getData();
                 qe.inMemIndex = me.getValue();
                 IMapEntry mapEntry = table.getMapEntry(qe.inMemIndex.getIndex());
@@ -130,24 +134,29 @@ public class Level0Merger extends Thread {
             }
         }
 
+        System.gc();
+
         // merge sort
+        QueueElement qe1, qe2;
+        IMapEntry mapEntry;
+        byte[] value;
         while (pq.size() > 0) {
-            QueueElement qe1 = pq.poll();
+            qe1 = pq.poll();
             // remove old/stale entries
             while (pq.peek() != null && qe1.keyHash == pq.peek().keyHash && BytesUtil.KeyComparator(qe1.key, pq.peek().key) == 0) {
-                QueueElement qe2 = pq.poll();
+                qe2 = pq.poll();
                 if (qe2.iterator.hasNext()) {
-                    Map.Entry<ByteArrayWrapper, InMemIndex> me = qe2.iterator.next();
+                    me = qe2.iterator.next();
                     qe2.key = me.getKey().getData();
                     qe2.inMemIndex = me.getValue();
-                    IMapEntry mapEntry = qe2.hashMapTable.getMapEntry(qe2.inMemIndex.getIndex());
+                    mapEntry = qe2.hashMapTable.getMapEntry(qe2.inMemIndex.getIndex());
                     qe2.keyHash = mapEntry.getKeyHash();
                     pq.add(qe2);
                 }
             }
 
-            IMapEntry mapEntry = qe1.hashMapTable.getMapEntry(qe1.inMemIndex.getIndex());
-            byte[] value = mapEntry.getValue();
+            mapEntry = qe1.hashMapTable.getMapEntry(qe1.inMemIndex.getIndex());
+            value = mapEntry.getValue();
             // disk space optimization
             if (mapEntry.isDeleted() || mapEntry.isExpired()) {
                 value = new byte[]{0};
@@ -155,7 +164,7 @@ public class Level0Merger extends Thread {
             sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value, mapEntry.getTimeToLive(), mapEntry.getCreatedTime(), mapEntry.isDeleted(), mapEntry.isCompressed());
 
             if (qe1.iterator.hasNext()) {
-                Map.Entry<ByteArrayWrapper, InMemIndex> me = qe1.iterator.next();
+                me = qe1.iterator.next();
                 qe1.key = me.getKey().getData();
                 qe1.inMemIndex = me.getValue();
                 IMapEntry mEntry = qe1.hashMapTable.getMapEntry(qe1.inMemIndex.getIndex());
@@ -163,6 +172,8 @@ public class Level0Merger extends Thread {
                 pq.add(qe1);
             }
         }
+
+        System.gc();
 
         // persist metadata
         sortedMapTable.reMap();
@@ -191,6 +202,8 @@ public class Level0Merger extends Thread {
             table.close();
             table.delete();
         }
+
+        System.gc();
     }
 
     public void setStop() {
