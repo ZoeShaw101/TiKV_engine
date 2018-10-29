@@ -141,6 +141,8 @@ public class Level0Merger extends Thread {
                 pq.add(qe);
             }
         }
+        list = null;
+        qe = null;
 
         System.gc();
 
@@ -180,6 +182,8 @@ public class Level0Merger extends Thread {
                 pq.add(qe1);
             }
         }
+        qe1 = null;
+        qe2 = null;
 
         System.gc();
 

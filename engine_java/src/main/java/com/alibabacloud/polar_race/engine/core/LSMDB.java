@@ -169,6 +169,8 @@ public class LSMDB implements Closeable {
                 table.delete();
             }
         }
+
+        logger.info("加载磁盘的table信息完成！");
     }
 
     public String getDir() {
