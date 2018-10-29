@@ -6,6 +6,7 @@ import com.alibabacloud.polar_race.engine.core.stats.DBStats;
 import com.alibabacloud.polar_race.engine.core.stats.FileStatsCollector;
 import com.alibabacloud.polar_race.engine.core.stats.Operations;
 import com.alibabacloud.polar_race.engine.core.table.*;
+import com.alibabacloud.polar_race.engine.core.utils.DateFormatter;
 import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +52,7 @@ public class LSMDB implements Closeable {
 
     @SuppressWarnings("unchecked")
     public LSMDB(String dir, DBConfig config) {
-        logger.info("初始化DB配置...，现在内存大小：" + Runtime.getRuntime().freeMemory());
+        logger.info("初始化DB配置...，现在内存大小：" + Runtime.getRuntime().freeMemory() + "，时间：" + DateFormatter.formatCurrentDate());
         this.dir = dir;
         this.config = config;
 
@@ -347,7 +348,7 @@ public class LSMDB implements Closeable {
 
     @Override
     public void close() throws IOException {
-        logger.info("正在关闭存储引擎...");
+        logger.info("正在关闭存储引擎..." + "时间：" + DateFormatter.formatCurrentDate());
         if (closed) return;
 
         fileStatsCollector.setStop();
@@ -381,7 +382,7 @@ public class LSMDB implements Closeable {
         }
 
         closed = true;
-        logger.info("引擎正常关闭！");
+        logger.info("引擎正常关闭！" + "时间：" + DateFormatter.formatCurrentDate());
     }
 
     /**
