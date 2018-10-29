@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.management.BufferPoolMXBean;
+import java.lang.management.ManagementFactory;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
@@ -19,7 +21,7 @@ public class Level0Merger extends Thread {
 
     private static final int MAX_SLEEP_TIME = 2 * 1000; // 2 seconds
 
-    public static final int DEFAULT_MERGE_WAYS = 4; // 当level 0 的 memtable 达到k个时, 进行K路归并算法
+    public static final int DEFAULT_MERGE_WAYS = 2; // 当level 0 的 memtable 达到k个时, 进行K路归并算法
 
     private List<LevelQueue> levelQueueList;
     private LSMDB sdb;
@@ -46,6 +48,9 @@ public class Level0Merger extends Thread {
                 if (levelQueue0 != null && levelQueue0.size() >= DEFAULT_MERGE_WAYS) {
                     log.info("Start running level 0 merge thread at " + DateFormatter.formatCurrentDate());
                     log.info("Current queue size at level 0 is " + levelQueue0.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
+
+                    List<BufferPoolMXBean> pools = ManagementFactory.getPlatformMXBeans(BufferPoolMXBean.class);  //查看堆外内存
+
 
                     long start = System.nanoTime();
                     LevelQueue levelQueue1 = levelQueueList.get(LSMDB.LEVEL1);
