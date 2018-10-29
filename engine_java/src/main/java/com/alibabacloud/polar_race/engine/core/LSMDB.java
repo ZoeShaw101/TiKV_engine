@@ -350,7 +350,6 @@ public class LSMDB {
         return null; // no luck
     }
 
-    @Override
     public void close() throws IOException {
         logger.info("正在关闭存储引擎..." + "时间：" + DateFormatter.formatCurrentDate());
         if (closed) return;
