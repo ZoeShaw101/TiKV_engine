@@ -124,6 +124,7 @@ public class LSMDB implements Closeable {
                 this.activeInMemTables[i].markImmutable(false); // mutable
                 this.activeInMemTables[i].setCompressionEnabled(this.config.isCompressionEnabled());
             }
+            logger.info("新建引擎！不需要加载table信息");
             return;
         }
 

@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.lang.management.BufferPoolMXBean;
 import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
@@ -49,9 +50,10 @@ public class Level0Merger extends Thread {
                     log.info("Start running level 0 merge thread at " + DateFormatter.formatCurrentDate());
                     log.info("Current queue size at level 0 is " + levelQueue0.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
 
-                    List<BufferPoolMXBean> pools = ManagementFactory.getPlatformMXBeans(BufferPoolMXBean.class);  //查看堆外内存
-                    for (BufferPoolMXBean bean : pools) {
-                        log.info(bean.getName() + ", 总量:" + bean.getTotalCapacity() + ", 已使用:" + bean.getMemoryUsed());
+                    List<MemoryMXBean> pools = ManagementFactory.getPlatformMXBeans(MemoryMXBean.class);  //查看堆外内存
+                    for (MemoryMXBean bean : pools) {
+                        log.info("heap init: " + bean.getHeapMemoryUsage().getInit() + ", heap used:" + bean.getHeapMemoryUsage().getUsed());
+                        log.info("non heap init: " + bean.getNonHeapMemoryUsage().getInit() + ", non heap used:" + bean.getNonHeapMemoryUsage().getUsed());
                     }
 
                     long start = System.nanoTime();
@@ -198,7 +200,7 @@ public class Level0Merger extends Thread {
             for (int i = 0; i < ways; i++) {
                 source.removeLast();
             }
-            for (HashMapTable table : tables) {
+            for (HashMapTable table : tables) {  //source的table都标记为不可用
                 table.markUsable(false);
             }
 
