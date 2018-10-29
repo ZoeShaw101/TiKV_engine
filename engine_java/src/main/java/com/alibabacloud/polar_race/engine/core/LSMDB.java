@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.CountDownLatch;
 
-public class LSMDB implements Closeable {
+public class LSMDB {
 
     static final Logger logger = LoggerFactory.getLogger(LSMDB.class);
 
