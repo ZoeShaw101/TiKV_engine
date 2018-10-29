@@ -150,6 +150,7 @@ public class HashMapTable extends AbstractMapTable {
         localIndexBuffer.position(offsetInIndexFile);
         //indexBuf.rewind();
         localIndexBuffer.put(tempIndexBuf);
+        tempIndexBuf = null;
 
         // write key/value
         ByteBuffer localDataBuffer = this.localDataMappedByteBuffer.get();
@@ -220,6 +221,8 @@ public class HashMapTable extends AbstractMapTable {
         if (mapEntry == null) { // no space
             return false;
         }
+
+        mapEntry = null;
 
         return true;
     }

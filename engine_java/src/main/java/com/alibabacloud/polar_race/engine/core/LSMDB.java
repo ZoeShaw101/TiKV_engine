@@ -239,6 +239,7 @@ public class LSMDB implements Closeable {
                         tempTable.put(key, value, timeToLive, createdTime, isDelete);
                         // switch on
                         this.activeInMemTables[shard] = tempTable;
+                        tempTable = null;
                     }
                 }
             }

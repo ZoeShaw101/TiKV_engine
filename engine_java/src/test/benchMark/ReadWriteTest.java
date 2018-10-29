@@ -20,7 +20,7 @@ public class ReadWriteTest {
     private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
     private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
 //    private final static int THREAD_NUM = 16;
-    private final static int ENTRY_NUM = 1000;
+    private final static int ENTRY_NUM = 10000;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
     private static EngineRace engineRace = new EngineRace();
@@ -39,6 +39,8 @@ public class ReadWriteTest {
                             byte[] value = TestUtil.randomString(4000).getBytes();
                             kvs.put(key, value);
                             engineRace.write(key, value);
+                            key = null;
+                            value = null;
                             byteNum.getAndAdd(4008);
                         }
                     } catch (Exception e) {
@@ -105,19 +107,19 @@ public class ReadWriteTest {
         concurrentWrite();
         engineRace.close();
 
-        long cost = System.nanoTime() - start;
-        System.out.println("=====================================");
-        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost +
-                ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
-        System.out.println("=====================================");
-
-
-        try {
-            engineRace.open(DB_PATH);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        read();
-        engineRace.close();
+//        long cost = System.nanoTime() - start;
+//        System.out.println("=====================================");
+//        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost +
+//                ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
+//        System.out.println("=====================================");
+//
+//
+//        try {
+//            engineRace.open(DB_PATH);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        read();
+//        engineRace.close();
     }
 }
