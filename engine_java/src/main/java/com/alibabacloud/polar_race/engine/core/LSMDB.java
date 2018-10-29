@@ -360,7 +360,6 @@ public class LSMDB implements Closeable {
             this.level0Mergers[i].setStop();
             this.level1Mergers[i].setStop();
         }
-
         for(int i = 0; i < config.getShardNumber(); i++) {
             try {
                 logger.info("Shard " + i + " waiting level 0 & 1 merge threads to exit...");

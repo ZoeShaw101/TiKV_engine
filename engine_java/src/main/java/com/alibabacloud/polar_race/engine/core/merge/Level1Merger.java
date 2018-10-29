@@ -53,8 +53,8 @@ public class Level1Merger extends Thread {
                 if ((!hasLevel2MapTable && lq1.size() >= DEFAULT_MERGE_WAYS) ||
                         (hasLevel2MapTable && lq1.size() >= DEFAULT_MERGE_WAYS - 1)) {
                     log.info("Start running level 1 merging at " + DateFormatter.formatCurrentDate());
-                    log.info("Current queue size at level 1 is " + lq1.size());
-                    log.info("Current queue size at level 2 is " + lq2.size());
+                    log.info("Current queue size at level 1 is " + lq1.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
+                    log.info("Current queue size at level 2 is " + lq2.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
 
                     long start = System.nanoTime();
                     mergeSort(lq1, lq2, DEFAULT_MERGE_WAYS, sdb.getDir(), shard);

@@ -18,7 +18,8 @@ public class Level0Merger extends Thread {
     static final Logger log = LoggerFactory.getLogger(Level0Merger.class);
 
     private static final int MAX_SLEEP_TIME = 2 * 1000; // 2 seconds
-    public static final int DEFAULT_MERGE_WAYS = 2; // 2 way merge
+
+    public static final int DEFAULT_MERGE_WAYS = 4; // 当level 0 的 memtable 达到k个时, 进行K路归并算法
 
     private List<LevelQueue> levelQueueList;
     private LSMDB sdb;
@@ -44,11 +45,13 @@ public class Level0Merger extends Thread {
                 LevelQueue levelQueue0 = levelQueueList.get(LSMDB.LEVEL0);
                 if (levelQueue0 != null && levelQueue0.size() >= DEFAULT_MERGE_WAYS) {
                     log.info("Start running level 0 merge thread at " + DateFormatter.formatCurrentDate());
-                    log.info("Current queue size at level 0 is " + levelQueue0.size());
+                    log.info("Current queue size at level 0 is " + levelQueue0.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
 
                     long start = System.nanoTime();
                     LevelQueue levelQueue1 = levelQueueList.get(LSMDB.LEVEL1);
+
                     mergeSort(levelQueue0, levelQueue1, DEFAULT_MERGE_WAYS, sdb.getDir(), shard);
+
                     stats.recordMerging(LSMDB.LEVEL0, System.nanoTime() - start);
 
                     log.info("Stopped running level 0 merge thread at " + DateFormatter.formatCurrentDate());
