@@ -149,7 +149,7 @@ public class Level0Merger extends Thread {
 
         System.gc();
 
-        log.info("执行归并排序...");
+        log.info("执行归并排序...");  //todo:归并排序的时候会系统oom
         QueueElement qe1, qe2;
         IMapEntry mapEntry;
         //byte[] value;

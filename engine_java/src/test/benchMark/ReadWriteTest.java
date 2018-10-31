@@ -18,13 +18,13 @@ public class ReadWriteTest {
     private static Logger logger = Logger.getLogger(BenchMark.class);
 
     private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
-    private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
-//    private final static int THREAD_NUM = 16;
-    private final static int ENTRY_NUM = 10000;
+//    private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
+    private final static int THREAD_NUM = 64;
+    private final static int ENTRY_NUM = 1000000;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
     private static EngineRace engineRace = new EngineRace();
-    private static ExecutorService pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private static ExecutorService pool = Executors.newFixedThreadPool(THREAD_NUM);
     private static CountDownLatch countDownLatch = new CountDownLatch(THREAD_NUM);
     private static AtomicLong byteNum = new AtomicLong(0);
 
@@ -33,6 +33,7 @@ public class ReadWriteTest {
             pool.submit(new Runnable() {
                 @Override
                 public void run() {
+                    //logger.info("线程" + Thread.currentThread().getName() + "正在执行");
                     try {
                         for (int j = 0; j < ENTRY_NUM; j++) {
 //                            byte[] key = TestUtil.randomString(8).getBytes();
