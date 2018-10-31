@@ -20,7 +20,7 @@ public class Level0Merger extends Thread {
 
     static final Logger log = LoggerFactory.getLogger(Level0Merger.class);
 
-    private static final int MAX_SLEEP_TIME = 2 * 1000; // 2 seconds
+    private static final int MAX_SLEEP_TIME = 4 * 1000; // 2 seconds
 
     public static final int DEFAULT_MERGE_WAYS = 2; // 当level 0 的 memtable 达到k个时, 进行K路归并算法
 
@@ -47,8 +47,8 @@ public class Level0Merger extends Thread {
             try {
                 LevelQueue levelQueue0 = levelQueueList.get(LSMDB.LEVEL0);
                 if (levelQueue0 != null && levelQueue0.size() >= DEFAULT_MERGE_WAYS) {
-                    log.info("Start running level 0 merge thread at " + DateFormatter.formatCurrentDate());
-                    log.info("Current queue size at level 0 is " + levelQueue0.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
+                    log.info("开始执行 level 0 merge thread at " + DateFormatter.formatCurrentDate());
+                    log.info("当前 queue size at level 0 is " + levelQueue0.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
 
                     List<MemoryMXBean> pools = ManagementFactory.getPlatformMXBeans(MemoryMXBean.class);  //查看堆外内存
                     for (MemoryMXBean bean : pools) {
@@ -151,7 +151,7 @@ public class Level0Merger extends Thread {
         // merge sort
         QueueElement qe1, qe2;
         IMapEntry mapEntry;
-        byte[] value;
+        //byte[] value;
         while (pq.size() > 0) {
             qe1 = pq.poll();
             // remove old/stale entries
@@ -168,7 +168,7 @@ public class Level0Merger extends Thread {
             }
 
             mapEntry = qe1.hashMapTable.getMapEntry(qe1.inMemIndex.getIndex());
-            value = mapEntry.getValue();
+            byte[] value = mapEntry.getValue();
             // disk space optimization
             if (mapEntry.isDeleted() || mapEntry.isExpired()) {
                 value = new byte[]{0};

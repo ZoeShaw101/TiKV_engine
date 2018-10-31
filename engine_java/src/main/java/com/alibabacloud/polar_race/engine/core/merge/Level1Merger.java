@@ -20,7 +20,7 @@ public class Level1Merger extends Thread {
 
     static final Logger log = LoggerFactory.getLogger(Level1Merger.class);
 
-    private static final int MAX_SLEEP_TIME = 5 * 1000; // 5 seconds
+    private static final int MAX_SLEEP_TIME = 8 * 1000; // 5 seconds
     private static final int DEFAULT_MERGE_WAYS = 4; // 4 way merge
     private static final int CACHED_MAP_ENTRIES = 32;
 
@@ -52,9 +52,9 @@ public class Level1Merger extends Thread {
                 boolean hasLevel2MapTable = lq2.size() > 0;
                 if ((!hasLevel2MapTable && lq1.size() >= DEFAULT_MERGE_WAYS) ||
                         (hasLevel2MapTable && lq1.size() >= DEFAULT_MERGE_WAYS - 1)) {
-                    log.info("Start running level 1 merging at " + DateFormatter.formatCurrentDate());
-                    log.info("Current queue size at level 1 is " + lq1.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
-                    log.info("Current queue size at level 2 is " + lq2.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
+                    log.info("当前执行 running level 1 merging at " + DateFormatter.formatCurrentDate());
+                    log.info("当前 queue size at level 1 is " + lq1.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
+                    log.info("当前 queue size at level 2 is " + lq2.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
 
                     long start = System.nanoTime();
                     mergeSort(lq1, lq2, DEFAULT_MERGE_WAYS, sdb.getDir(), shard);
