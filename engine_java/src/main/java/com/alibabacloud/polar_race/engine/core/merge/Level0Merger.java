@@ -50,11 +50,11 @@ public class Level0Merger extends Thread {
                     log.info("开始执行 level 0 merge thread at " + DateFormatter.formatCurrentDate());
                     log.info("当前 queue size at level 0 is " + levelQueue0.size() + ", current free memory size: " + Runtime.getRuntime().freeMemory());
 
-                    List<MemoryMXBean> pools = ManagementFactory.getPlatformMXBeans(MemoryMXBean.class);  //查看堆外内存
+                    /*List<MemoryMXBean> pools = ManagementFactory.getPlatformMXBeans(MemoryMXBean.class);  //查看堆外内存
                     for (MemoryMXBean bean : pools) {
                         log.info("heap init: " + bean.getHeapMemoryUsage().getInit() + ", heap used:" + bean.getHeapMemoryUsage().getUsed());
                         log.info("non heap init: " + bean.getNonHeapMemoryUsage().getInit() + ", non heap used:" + bean.getNonHeapMemoryUsage().getUsed());
-                    }
+                    }*/
 
                     long start = System.nanoTime();
                     LevelQueue levelQueue1 = levelQueueList.get(LSMDB.LEVEL1);
@@ -95,12 +95,13 @@ public class Level0Merger extends Thread {
         for (HashMapTable table : tables) {
             expectedInsertions += table.getRealSize();
         }
+        log.info("分配merge目标table...");
         // target table
         MMFMapTable sortedMapTable = new MMFMapTable(dir, shard, LSMDB.LEVEL1, System.nanoTime(), expectedInsertions, ways);
 
         PriorityQueue<QueueElement> pq = new PriorityQueue<QueueElement>();
 
-        // build initial heap
+        log.info("创建堆...");
         QueueElement qe;
         List<Map.Entry<ByteArrayWrapper, InMemIndex>> list;
         Map.Entry<ByteArrayWrapper, InMemIndex> me;
@@ -148,7 +149,7 @@ public class Level0Merger extends Thread {
 
         System.gc();
 
-        // merge sort
+        log.info("执行归并排序...");
         QueueElement qe1, qe2;
         IMapEntry mapEntry;
         //byte[] value;
@@ -189,11 +190,12 @@ public class Level0Merger extends Thread {
 
         System.gc();
 
+        log.info("归并排序执行完毕，保存meta信息...");
         // persist metadata
         sortedMapTable.reMap();
         sortedMapTable.saveMetadata();
 
-        // dump to level 1
+        log.info("保存进level 1...");
         source.getWriteLock().lock();
         target.getWriteLock().lock();
         try {
@@ -216,7 +218,7 @@ public class Level0Merger extends Thread {
             table.close();
             table.delete();
         }
-
+        log.info("完成merge操作...");
         System.gc();
     }
 
