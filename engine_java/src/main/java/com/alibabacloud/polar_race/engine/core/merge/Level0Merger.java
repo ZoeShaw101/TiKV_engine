@@ -152,6 +152,7 @@ public class Level0Merger extends Thread {
         log.info("执行归并排序...");  //todo:归并排序的时候会系统oom
         QueueElement qe1, qe2;
         IMapEntry mapEntry;
+        boolean flag = true;
         //byte[] value;
         while (pq.size() > 0) {
             qe1 = pq.poll();
@@ -175,7 +176,10 @@ public class Level0Merger extends Thread {
                 value = new byte[]{0};
             }
             sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value, mapEntry.getTimeToLive(), mapEntry.getCreatedTime(), mapEntry.isDeleted(), mapEntry.isCompressed());
-
+            if (flag) {
+                log.info("首次进行归并排序，写入数据到table");
+                flag = false;
+            }
             if (qe1.iterator.hasNext()) {
                 me = qe1.iterator.next();
                 qe1.key = me.getKey().getData();
