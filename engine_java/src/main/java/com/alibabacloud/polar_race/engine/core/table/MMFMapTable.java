@@ -43,10 +43,6 @@ public class MMFMapTable extends AbstractSortedMapTable {
         dataMappedByteBuffer = this.dataChannel.map(FileChannel.MapMode.READ_ONLY, 0, this.dataChannel.size());
     }
 
-    // for testing
-    public IMapEntry appendNew(byte[] key, byte[] value, long timeToLive) throws IOException {
-        return this.appendNew(key, Arrays.hashCode(key), value, timeToLive, System.currentTimeMillis(), false, false);
-    }
 
     @Override
     public IMapEntry appendNew(byte[] key, int keyHash, byte[] value, long timeToLive, long createdTime, boolean markDelete, boolean compressed) throws IOException {

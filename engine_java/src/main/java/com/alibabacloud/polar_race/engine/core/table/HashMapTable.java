@@ -1,5 +1,6 @@
 package com.alibabacloud.polar_race.engine.core.table;
 
+import com.alibabacloud.polar_race.engine.core.LSMDB;
 import com.alibabacloud.polar_race.engine.core.utils.MMFUtil;
 import com.google.common.base.Preconditions;
 
@@ -70,6 +71,7 @@ public class HashMapTable extends AbstractMapTable {
         toAppendDataFileOffset = new AtomicLong(0);
         int index = 0;
         MMFMapEntryImpl mapEntry = new MMFMapEntryImpl(index, this.localIndexMappedByteBuffer.get(), this.localDataMappedByteBuffer.get());
+        //恢复内存中的索引
         while(mapEntry.isInUse()) {
             toAppendIndex.incrementAndGet();
             long nextOffset = mapEntry.getItemOffsetInDataFile() + mapEntry.getKeyLength() + mapEntry.getValueLength();
@@ -87,17 +89,6 @@ public class HashMapTable extends AbstractMapTable {
         Preconditions.checkArgument(key != null && key.length > 0, "Key is empty");
         Preconditions.checkArgument(value != null && value.length > 0, "value is empty");
         return this.appendNew(key, Arrays.hashCode(key), value, timeToLive, createdTime, false, false);
-    }
-
-    private IMapEntry appendTombstone(byte[] key) throws IOException {
-        Preconditions.checkArgument(key != null && key.length > 0, "Key is empty");
-        return this.appendNew(key, Arrays.hashCode(key), new byte[] {0}, NO_TIMEOUT, System.currentTimeMillis(), true, false);
-    }
-
-    private IMapEntry appendNewCompressed(byte[] key, byte[] value, long timeToLive, long createdTime) throws IOException {
-        Preconditions.checkArgument(key != null && key.length > 0, "Key is empty");
-        Preconditions.checkArgument(value != null && value.length > 0, "value is empty");
-        return this.appendNew(key, Arrays.hashCode(key), value, timeToLive, createdTime, false, true);
     }
 
     private IMapEntry appendNew(byte[] key, int keyHash, byte[] value, long timeToLive, long createdTime, boolean markDelete, boolean compressed) throws IOException {
@@ -160,7 +151,9 @@ public class HashMapTable extends AbstractMapTable {
         localDataBuffer.put(ByteBuffer.wrap(value));
 
         this.hashMap.put(new ByteArrayWrapper(key), new InMemIndex((int)tempToAppendIndex));
-
+        if (LSMDB.DEBUG_ENABLE) {
+            log.info("写入key=" + new String(key) + "到内存映射");
+        }
         return new MMFMapEntryImpl((int)tempToAppendIndex, localIndexBuffer, localDataBuffer);
     }
 
@@ -211,12 +204,8 @@ public class HashMapTable extends AbstractMapTable {
         Preconditions.checkArgument(value != null && value.length > 0, "value is empty");
 
         IMapEntry mapEntry = null;
-        if (isDelete) {
-            // make a tombstone
-            mapEntry = this.appendTombstone(key);
-        } else {
-            mapEntry = this.appendNew(key, value, timeToLive, createdTime);
-        }
+
+        mapEntry = this.appendNew(key, value, timeToLive, createdTime);
 
         if (mapEntry == null) { // no space
             return false;
@@ -231,9 +220,6 @@ public class HashMapTable extends AbstractMapTable {
         this.put(key, value, timeToLive, createdTime, false);
     }
 
-    public void delete(byte[] key) throws IOException {
-        this.appendTombstone(key);
-    }
 
     public int getRealSize() {
         return this.hashMap.size();
