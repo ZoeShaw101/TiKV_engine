@@ -359,6 +359,7 @@ public class LSMDB {
         for(int i = 0; i < config.getShardNumber(); i++) {
             this.activeInMemTables[i].close();
         }
+        logger.info("activeInMemTable正常关闭！");
 
         for(int i = 0; i < config.getShardNumber(); i++) {
             this.level0Mergers[i].setStop();

@@ -234,6 +234,7 @@ public class HashMapTable extends AbstractMapTable {
         MMFUtil.unmap((MappedByteBuffer)this.localDataMappedByteBuffer.getSourceBuffer());
         this.localDataMappedByteBuffer = null;
         super.close();
+        log.info("HashMapTable正常关闭!");
     }
 }
 

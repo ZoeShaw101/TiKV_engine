@@ -177,6 +177,7 @@ public abstract class AbstractMapTable implements Closeable, Comparable<Abstract
             this.dataRaf = null;
         }
         this.closed = true;
+        log.info("AbstractTable正常关闭！");
     }
 
     @Override
