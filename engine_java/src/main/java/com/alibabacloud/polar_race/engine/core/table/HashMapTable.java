@@ -21,6 +21,7 @@ public class HashMapTable extends AbstractMapTable {
     private AtomicBoolean immutable = new AtomicBoolean(true);
 
     private ConcurrentHashMap<ByteArrayWrapper, InMemIndex> hashMap;   //内存索引
+
     protected ThreadLocalByteBuffer localDataMappedByteBuffer;
     protected ThreadLocalByteBuffer localIndexMappedByteBuffer;
 
@@ -230,8 +231,10 @@ public class HashMapTable extends AbstractMapTable {
         if (this.localIndexMappedByteBuffer == null) return;
         if (this.localDataMappedByteBuffer == null) return;
         MMFUtil.unmap((MappedByteBuffer)this.localIndexMappedByteBuffer.getSourceBuffer());
+        this.localIndexMappedByteBuffer.remove();
         this.localIndexMappedByteBuffer = null;
         MMFUtil.unmap((MappedByteBuffer)this.localDataMappedByteBuffer.getSourceBuffer());
+        this.localDataMappedByteBuffer.remove();
         this.localDataMappedByteBuffer = null;
         super.close();
         log.info("HashMapTable:" + this.fileName + "正常关闭!");

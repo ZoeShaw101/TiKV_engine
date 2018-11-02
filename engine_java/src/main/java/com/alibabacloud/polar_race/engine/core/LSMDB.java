@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class LSMDB {
 
@@ -45,6 +46,8 @@ public class LSMDB {
 
     private boolean closed = false;
     public static final boolean DEBUG_ENABLE = false;
+
+    private AtomicInteger putCounter = new AtomicInteger(0);
 
     public LSMDB(String dir) {
         this(dir, new DBConfig());
@@ -245,6 +248,10 @@ public class LSMDB {
                         tempTable = null;
                     }
                 }
+            }
+            putCounter.incrementAndGet();
+            if (putCounter.get() % 10000 == 0) {
+                logger.info("已写入" + putCounter.get() + "个数");
             }
             if (DEBUG_ENABLE) {
                 logger.info("数据写入：key=" + new String(key));
