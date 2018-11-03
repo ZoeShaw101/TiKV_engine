@@ -21,7 +21,7 @@ public class Level1Merger extends Thread {
     static final Logger log = LoggerFactory.getLogger(Level1Merger.class);
 
     private static final int MAX_SLEEP_TIME = 8 * 1000; // 5 seconds
-    private static final int DEFAULT_MERGE_WAYS = 4; // 4 way merge
+    private static final int DEFAULT_MERGE_WAYS = 8; // 4 way merge
     private static final int CACHED_MAP_ENTRIES = 32;
 
     private List<LevelQueue> levelQueueList;

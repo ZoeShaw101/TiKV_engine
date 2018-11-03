@@ -22,7 +22,7 @@ public class Level0Merger extends Thread {
 
     private static final int MAX_SLEEP_TIME = 4 * 1000; // 2 seconds
 
-    public static final int DEFAULT_MERGE_WAYS = 2; // 当level 0 的 memtable 达到k个时, 进行K路归并算法
+    public static final int DEFAULT_MERGE_WAYS = 4; // 当level 0 的 memtable 达到k个时, 进行K路归并算法
 
     private List<LevelQueue> levelQueueList;
     private LSMDB sdb;
