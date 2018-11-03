@@ -94,7 +94,7 @@ public class ReadWriteTest {
     }
 
     public static void main(String[] args) {
-        long start = System.nanoTime();
+        long start = System.currentTimeMillis();
         try {
             engineRace.open(DB_PATH);
         } catch (Exception e) {
@@ -108,7 +108,9 @@ public class ReadWriteTest {
         concurrentWrite();
         engineRace.close();
 
-//        long cost = System.nanoTime() - start;
+        long cost = System.currentTimeMillis() - start;
+        logger.info("耗时:" + cost + "ms");
+
 //        System.out.println("=====================================");
 //        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost +
 //                ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
