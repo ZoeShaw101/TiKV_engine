@@ -126,8 +126,6 @@ public class Level1Merger extends Thread {
             }
         }
 
-        System.gc();
-
         LinkedList<IMapEntry> targetCacheQueue = new LinkedList<IMapEntry>();
         // merge sort
         QueueElement qe1, qe2;
@@ -169,8 +167,6 @@ public class Level1Merger extends Thread {
                 pq.add(qe1);
             }
         }
-
-        System.gc();
 
         // remaining cached entries
         while(targetCacheQueue.size() > 0) {
@@ -215,7 +211,6 @@ public class Level1Merger extends Thread {
             table.close();
             table.delete();
         }
-        System.gc();
     }
 
     public void setStop() {

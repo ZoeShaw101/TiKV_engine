@@ -223,7 +223,7 @@ public class Level0Merger extends Thread {
             table.close();
             table.delete();
         }
-        log.info("完成merge操作...");
+        log.info("完成merge操作!");
         //System.gc();
     }
 
