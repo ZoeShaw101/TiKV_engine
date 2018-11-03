@@ -147,7 +147,7 @@ public class Level0Merger extends Thread {
         list = null;
         qe = null;
 
-        System.gc();
+        //System.gc();
 
         log.info("执行归并排序...");  //todo:归并排序的时候会系统oom
         QueueElement qe1, qe2;
@@ -155,6 +155,7 @@ public class Level0Merger extends Thread {
         boolean flag = true;
         //byte[] value;
         while (pq.size() > 0) {
+            //log.info("priority queue size=" + pq.size());
             qe1 = pq.poll();
             // remove old/stale entries
             while (pq.peek() != null && qe1.keyHash == pq.peek().keyHash && BytesUtil.KeyComparator(qe1.key, pq.peek().key) == 0) {
@@ -192,14 +193,14 @@ public class Level0Merger extends Thread {
         qe1 = null;
         qe2 = null;
 
-        System.gc();
+        //System.gc();
 
         log.info("归并排序执行完毕，保存meta信息...");
         // persist metadata
         sortedMapTable.reMap();
         sortedMapTable.saveMetadata();
 
-        log.info("保存进level 1...");
+        log.info("保存进level 1...");   //todo:这里可能产生死锁？？
         source.getWriteLock().lock();
         target.getWriteLock().lock();
         try {
@@ -223,7 +224,7 @@ public class Level0Merger extends Thread {
             table.delete();
         }
         log.info("完成merge操作...");
-        System.gc();
+        //System.gc();
     }
 
     public void setStop() {

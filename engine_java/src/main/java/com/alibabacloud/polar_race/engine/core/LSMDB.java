@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LSMDB {
@@ -234,6 +235,7 @@ public class LSMDB {
                         lq0.getWriteLock().lock();
                         try {
                             lq0.addFirst(this.activeInMemTables[shard]);
+                            logger.info("queue0.size=" + lq0.size());
                         } finally {
                             lq0.getWriteLock().unlock();
                         }
@@ -250,9 +252,9 @@ public class LSMDB {
                 }
             }
             putCounter.incrementAndGet();
-            if (putCounter.get() % 10000 == 0) {
+            /*if (putCounter.get() % 10000 == 0) {
                 logger.info("已写入" + putCounter.get() + "个数");
-            }
+            }*/
             if (DEBUG_ENABLE) {
                 logger.info("数据写入：key=" + new String(key));
             }
@@ -375,7 +377,7 @@ public class LSMDB {
         for(int i = 0; i < config.getShardNumber(); i++) {
             try {
                 logger.info("Shard " + i + " waiting level 0 & 1 merge threads to exit...");
-                this.countDownLatches[i].await();
+                this.countDownLatches[i].await(3000, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 // ignore;
             }

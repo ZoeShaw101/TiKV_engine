@@ -23,13 +23,13 @@ public abstract class AbstractMapTable implements Closeable, Comparable<Abstract
     static int SIZE_OF_LONG_IN_BYTES = 8;
     static int SIZE_OF_INT_IN_BYTES = 4;
 
-    public final static int INIT_INDEX_ITEMS_PER_TABLE = 32 * 1024;
+    public final static int INIT_INDEX_ITEMS_PER_TABLE = 128 * 1024;
     // length in bytes of an index item
     final static int INDEX_ITEM_LENGTH = 40;
     // size in bytes of initial index file
     final static int INIT_INDEX_FILE_SIZE = INDEX_ITEM_LENGTH * INIT_INDEX_ITEMS_PER_TABLE;
     // size in bytes of initial data file
-    final static int INIT_DATA_FILE_SIZE = 256 * 1024 * 1024;
+    final static int INIT_DATA_FILE_SIZE = 128 * 1024 * 1024;
     final static int META_FILE_SIZE = 1 + SIZE_OF_INT_IN_BYTES + SIZE_OF_LONG_IN_BYTES;
     final static int TO_APPEND_INDEX_OFFSET = 1;
     final static int TO_APPEND_DATA_FILE_OFFSET = 1 + SIZE_OF_INT_IN_BYTES;
