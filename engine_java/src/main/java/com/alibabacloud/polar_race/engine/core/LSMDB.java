@@ -252,9 +252,9 @@ public class LSMDB {
                 }
             }
             putCounter.incrementAndGet();
-            /*if (putCounter.get() % 10000 == 0) {
+            if (putCounter.get() % 50000 == 0) {
                 logger.info("已写入" + putCounter.get() + "个数");
-            }*/
+            }
             if (DEBUG_ENABLE) {
                 logger.info("数据写入：key=" + new String(key));
             }
