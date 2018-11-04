@@ -73,12 +73,11 @@ public class HashMapTable extends AbstractMapTable {
         int index = 0;
         MMFMapEntryImpl mapEntry = new MMFMapEntryImpl(index, this.localIndexMappedByteBuffer.get(), this.localDataMappedByteBuffer.get());
         //恢复内存中的索引
-        while(mapEntry.isInUse()) {
+        while(mapEntry.getKey().length != 0) {
             toAppendIndex.incrementAndGet();
             long nextOffset = mapEntry.getItemOffsetInDataFile() + mapEntry.getKeyLength() + mapEntry.getValueLength();
             toAppendDataFileOffset.set(nextOffset);
             InMemIndex inMemIndex = new InMemIndex(index);
-            // populate in memory skip list
             hashMap.put(new ByteArrayWrapper(mapEntry.getKey()), inMemIndex);
             index++;
             mapEntry = new MMFMapEntryImpl(index, this.localIndexMappedByteBuffer.get(), this.localDataMappedByteBuffer.get());
@@ -125,17 +124,7 @@ public class HashMapTable extends AbstractMapTable {
         tempIndexBuf.putLong(IMapEntry.INDEX_ITEM_IN_DATA_FILE_OFFSET_OFFSET, tempToAppendDataFileOffset);
         tempIndexBuf.putInt(IMapEntry.INDEX_ITEM_KEY_LENGTH_OFFSET, key.length);
         tempIndexBuf.putInt(IMapEntry.INDEX_ITEM_VALUE_LENGTH_OFFSET, value.length);
-        tempIndexBuf.putLong(IMapEntry.INDEX_ITEM_TIME_TO_LIVE_OFFSET, timeToLive);
-        tempIndexBuf.putLong(IMapEntry.INDEX_ITEM_CREATED_TIME_OFFSET, createdTime);
         tempIndexBuf.putInt(IMapEntry.INDEX_ITEM_KEY_HASH_CODE_OFFSET, keyHash);
-        byte status = 1; // mark in use
-        if (markDelete) {
-            status = (byte) (status + 2); // binary 11
-        }
-        if (compressed && !markDelete) {
-            status = (byte) (status + 4);
-        }
-        tempIndexBuf.put(IMapEntry.INDEX_ITEM_STATUS, status); // mark in use
 
         int offsetInIndexFile = INDEX_ITEM_LENGTH * (int)tempToAppendIndex;
         ByteBuffer localIndexBuffer = this.localIndexMappedByteBuffer.get();
@@ -152,6 +141,7 @@ public class HashMapTable extends AbstractMapTable {
         localDataBuffer.put(ByteBuffer.wrap(value));
 
         this.hashMap.put(new ByteArrayWrapper(key), new InMemIndex((int)tempToAppendIndex));
+
         if (LSMDB.DEBUG_ENABLE) {
             log.info("写入key=" + new String(key) + "到内存映射");
         }
@@ -176,18 +166,7 @@ public class HashMapTable extends AbstractMapTable {
 
         IMapEntry mapEntry = this.getMapEntry(inMemIndex.getIndex());
         result.setValue(mapEntry.getValue());
-        if (mapEntry.isDeleted()) {
-            result.setDeleted(true);
-            return result;
-        }
-        if (mapEntry.isExpired()) {
-            result.setExpired(true);
-            return result;
-        }
         result.setLevel(this.getLevel());
-        result.setTimeToLive(mapEntry.getTimeToLive());
-        result.setCreatedTime(mapEntry.getCreatedTime());
-
         return result;
     }
 

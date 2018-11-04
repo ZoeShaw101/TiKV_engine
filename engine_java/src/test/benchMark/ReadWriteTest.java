@@ -20,7 +20,7 @@ public class ReadWriteTest {
 
     private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
 //    private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
-    private final static int THREAD_NUM = 64;
+    private final static int THREAD_NUM = 8;
     private final static int ENTRY_NUM = 10000;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
@@ -37,10 +37,11 @@ public class ReadWriteTest {
                     //logger.info("线程" + Thread.currentThread().getName() + "正在执行");
                     try {
                         for (int j = 0; j < ENTRY_NUM; j++) {
-//                            byte[] key = TestUtil.randomString(8).getBytes();
-//                            byte[] value = TestUtil.randomString(4000).getBytes();
-//                            kvs.put(key, value);
-                            engineRace.write(TestUtil.randomString(8).getBytes(), TestUtil.randomString(4096).getBytes());
+                            byte[] key = TestUtil.randomString(8).getBytes();
+                            byte[] value = TestUtil.randomString(4000).getBytes();
+                            kvs.put(key, value);
+                            engineRace.write(key, value);
+                            //engineRace.write(TestUtil.randomString(8).getBytes(), TestUtil.randomString(4096).getBytes());
 //                            key = null;
 //                            value = null;
                             byteNum.getAndAdd(4008);
@@ -119,12 +120,12 @@ public class ReadWriteTest {
 //        System.out.println("=====================================");
 //
 //
-//        try {
-//            engineRace.open(DB_PATH);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        read();
-//        engineRace.close();
+        try {
+            engineRace.open(DB_PATH);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        read();
+        engineRace.close();
     }
 }

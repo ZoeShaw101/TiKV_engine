@@ -16,13 +16,17 @@ import java.lang.management.MemoryMXBean;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
+/**
+ * LSM的写放大缺点
+ */
+
 public class Level0Merger extends Thread {
 
     static final Logger log = LoggerFactory.getLogger(Level0Merger.class);
 
     private static final int MAX_SLEEP_TIME = 4 * 1000; // 2 seconds
 
-    public static final int DEFAULT_MERGE_WAYS = 8; // 当level 0 的 memtable 达到k个时, 进行K路归并算法
+    public static final int DEFAULT_MERGE_WAYS = 4; // 当level 0 的 memtable 达到k个时, 进行K路归并算法
 
     private List<LevelQueue> levelQueueList;
     private LSMDB sdb;
@@ -172,11 +176,7 @@ public class Level0Merger extends Thread {
 
             mapEntry = qe1.hashMapTable.getMapEntry(qe1.inMemIndex.getIndex());
             byte[] value = mapEntry.getValue();
-            // disk space optimization
-            if (mapEntry.isDeleted() || mapEntry.isExpired()) {
-                value = new byte[]{0};
-            }
-            sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value, mapEntry.getTimeToLive(), mapEntry.getCreatedTime(), mapEntry.isDeleted(), mapEntry.isCompressed());
+            sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value);
             if (flag) {
                 log.info("首次进行归并排序，写入数据到table");
                 flag = false;

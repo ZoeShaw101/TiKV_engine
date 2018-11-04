@@ -23,6 +23,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * WiscKey :
+ * */
+
+
 public class LSMDB {
 
     static final Logger logger = LoggerFactory.getLogger(LSMDB.class);
@@ -32,6 +37,9 @@ public class LSMDB {
     public static final int LEVEL1 = 1;
     public static final int LEVEL2 = 2;
     public static final int MAX_LEVEL = 2;
+
+    private static final String VALUE_LOG = "/value.log";
+    private static final String VALUE_TMP_LOG = "/value.tmp.log";
 
     private volatile HashMapTable[] activeInMemTables;
     private Object[] activeInMemTableCreationLocks;
@@ -188,23 +196,11 @@ public class LSMDB {
         return this.stats;
     }
 
-    /**
-     * Put key/value entry into the DB with no timeout
-     *
-     * @param key the map entry key
-     * @param value the map entry value
-     */
+
     public void put(byte[] key, byte[] value) {
         this.put(key, value, AbstractMapTable.NO_TIMEOUT, System.currentTimeMillis(), false);
     }
 
-    /**
-     * Put key/value entry into the DB with specific timeToLive
-     *
-     * @param key the map entry key
-     * @param value the map entry value
-     * @param timeToLive time to live
-     */
     public void put(byte[] key, byte[] value, long timeToLive) {
         this.put(key, value, timeToLive, System.currentTimeMillis(), false);
     }
@@ -219,6 +215,7 @@ public class LSMDB {
         Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
         Preconditions.checkArgument(value != null && value.length > 0, "value is empty");
         ensureNotClosed();
+
 
         long start = System.nanoTime();
         String operation = isDelete ? Operations.DELETE : Operations.PUT;
@@ -269,13 +266,6 @@ public class LSMDB {
         }
     }
 
-    /**
-     * Get value in the DB with specific key
-     *
-     * @param key map entry key
-     * @return non-null value if the entry exists, not deleted or expired.
-     * null value if the entry does not exist, or exists but deleted or expired.
-     */
     public byte[] get(byte[] key) {
         Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
         ensureNotClosed();
@@ -398,27 +388,6 @@ public class LSMDB {
         logger.info("引擎正常关闭！" + "时间：" + DateFormatter.formatCurrentDate());
     }
 
-    /**
-     * Delete all back files;
-     *
-     */
-    public void destory() {
-        Preconditions.checkArgument(closed, "Can't delete DB in open status, please close first.");
-
-        for(int i = 0; i < config.getShardNumber(); i++) {
-            this.activeInMemTables[i].delete();
-        }
-
-        for(int i = 0; i < config.getShardNumber(); i++) {
-            for(int j = 0; j <= MAX_LEVEL; j++) {
-                LevelQueue lq = this.levelQueueLists[i].get(j);
-                for(AbstractMapTable table : lq) {
-                    table.delete();
-                }
-
-            }
-        }
-    }
 
     protected void ensureNotClosed() {
         if (closed) {

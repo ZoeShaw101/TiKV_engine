@@ -21,7 +21,7 @@ public class Level1Merger extends Thread {
     static final Logger log = LoggerFactory.getLogger(Level1Merger.class);
 
     private static final int MAX_SLEEP_TIME = 8 * 1000; // 5 seconds
-    private static final int DEFAULT_MERGE_WAYS = 16; // 4 way merge
+    private static final int DEFAULT_MERGE_WAYS = 8; // 4 way merge
     private static final int CACHED_MAP_ENTRIES = 32;
 
     private List<LevelQueue> levelQueueList;
@@ -78,8 +78,7 @@ public class Level1Merger extends Thread {
         log.info("Stopped level 1 to 2 merge thread " + this.getName());
     }
 
-    public static void mergeSort(LevelQueue lq1, LevelQueue lq2, int ways, String dir, short shard)
-            throws IOException, ClassNotFoundException {
+    public static void mergeSort(LevelQueue lq1, LevelQueue lq2, int ways, String dir, short shard) throws IOException, ClassNotFoundException {
         boolean hasLevel2MapTable = lq2.size() > 0;
         List<AbstractMapTable> tables = new ArrayList<AbstractMapTable>(ways);
         lq1.getReadLock().lock();
@@ -126,10 +125,11 @@ public class Level1Merger extends Thread {
             }
         }
 
-        LinkedList<IMapEntry> targetCacheQueue = new LinkedList<IMapEntry>();
+        Queue<IMapEntry> targetCacheQueue = new LinkedList<IMapEntry>();   //批量写入以提速
         // merge sort
         QueueElement qe1, qe2;
         IMapEntry mapEntry;
+        log.info("开始执行level1-2归并排序...");
         while(pq.size() > 0) {
             qe1 = pq.poll();
             // remove old/stale entries
@@ -143,20 +143,12 @@ public class Level1Merger extends Thread {
                     pq.add(qe2);
                 }
             }
-            // remove deleted or expired entries in final merge sorting
-            if (!qe1.mapEntry.isDeleted() && !qe1.mapEntry.isExpired()) {
-                targetCacheQueue.add(qe1.mapEntry);
-            }
+            targetCacheQueue.add(qe1.mapEntry);
             if (targetCacheQueue.size() >= CACHED_MAP_ENTRIES * DEFAULT_MERGE_WAYS) {
                 while(targetCacheQueue.size() > 0) {
                     mapEntry = targetCacheQueue.poll();
                     byte[] value = mapEntry.getValue();
-                    // disk space optimization
-                    if (mapEntry.isExpired()) {
-                        continue;
-                    }
-                    sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value, mapEntry.getTimeToLive(),
-                            mapEntry.getCreatedTime(), mapEntry.isDeleted(), mapEntry.isCompressed());
+                    sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value);
                 }
             }
             me = qe1.getNextMapEntry();
@@ -168,16 +160,13 @@ public class Level1Merger extends Thread {
             }
         }
 
+        log.info("开始执行level1-2归并排序完成!");
+
         // remaining cached entries
         while(targetCacheQueue.size() > 0) {
             mapEntry = targetCacheQueue.poll();
             byte[] value = mapEntry.getValue();
-            // disk space optimization
-            if (mapEntry.isExpired()) {
-                continue;
-            }
-            sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value, mapEntry.getTimeToLive(),
-                    mapEntry.getCreatedTime(), mapEntry.isDeleted(), mapEntry.isCompressed());
+            sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value);
         }
 
         // persist metadata
@@ -239,8 +228,6 @@ public class Level1Merger extends Thread {
                     // eager loading
                     mapEntry.getKey();
                     mapEntry.getValue();
-                    mapEntry.getTimeToLive();
-                    mapEntry.getCreatedTime();
                     queue.add(mapEntry);
                     index++;
                     count++;

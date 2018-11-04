@@ -164,19 +164,7 @@ public abstract class AbstractSortedMapTable extends AbstractMapTable {
         if (mapEntry == null) return result;
         else {
             result.setValue(mapEntry.getValue());
-            if (mapEntry.isDeleted()) {
-                result.setDeleted(true);
-                return result;
-            }
-            if (mapEntry.isExpired()) {
-                result.setExpired(true);
-                return result;
-            }
-            // hint for locality
             result.setLevel(this.getLevel());
-            result.setTimeToLive(mapEntry.getTimeToLive());
-            result.setCreatedTime(mapEntry.getCreatedTime());
-
             return result;
         }
     }
@@ -209,7 +197,7 @@ public abstract class AbstractSortedMapTable extends AbstractMapTable {
         indexMappedByteBuffer = this.indexChannel.map(FileChannel.MapMode.READ_ONLY, 0, this.indexChannel.size());
     }
 
-    public abstract IMapEntry appendNew(byte[] key, int keyHash, byte[] value, long timeToLive, long lastAccessedTime, boolean markDelete, boolean compressed) throws IOException;
+    public abstract IMapEntry appendNew(byte[] key, int keyHash, byte[] value) throws IOException;
 
     @Override
     public void delete() {

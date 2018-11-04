@@ -10,7 +10,6 @@ public class FCMapEntryImpl implements IMapEntry {
     private int index;
 
     private FileChannel dataChannel;
-    // index cached with memory mapped file
     private MappedByteBuffer indexMappedByteBuffer;
 
     // cache
@@ -46,6 +45,11 @@ public class FCMapEntryImpl implements IMapEntry {
     }
 
     @Override
+    public int getIndex() {
+        return this.index;
+    }
+
+    @Override
     public byte[] getKey() throws IOException {
         if (key != null) return key;
         long itemOffsetInDataFile = this.getItemOffsetInDataFile();
@@ -69,58 +73,4 @@ public class FCMapEntryImpl implements IMapEntry {
         return value;
     }
 
-    @Override
-    public long getTimeToLive() throws IOException {
-        int offsetInIndexFile = AbstractMapTable.INDEX_ITEM_LENGTH * index + IMapEntry.INDEX_ITEM_TIME_TO_LIVE_OFFSET;
-        return this.indexMappedByteBuffer.getLong(offsetInIndexFile);
-    }
-
-    @Override
-    public long getCreatedTime() throws IOException {
-        int offsetInIndexFile = AbstractMapTable.INDEX_ITEM_LENGTH * index + IMapEntry.INDEX_ITEM_CREATED_TIME_OFFSET;
-        return this.indexMappedByteBuffer.getLong(offsetInIndexFile);
-    }
-
-    @Override
-    public boolean isDeleted() throws IOException {
-        int offsetInIndexFile = AbstractMapTable.INDEX_ITEM_LENGTH * index + IMapEntry.INDEX_ITEM_STATUS;
-        byte status = this.indexMappedByteBuffer.get(offsetInIndexFile);
-        return (status & ( 1 << 1)) != 0;
-    }
-
-    @Override
-    public void markDeleted() throws IOException {
-        int offsetInIndexFile = AbstractMapTable.INDEX_ITEM_LENGTH * index + IMapEntry.INDEX_ITEM_STATUS;
-        byte status = this.indexMappedByteBuffer.get(offsetInIndexFile);
-        status = (byte) (status | 1 << 1);
-        this.indexMappedByteBuffer.put((int)offsetInIndexFile, status);
-    }
-
-    @Override
-    public boolean isExpired() throws IOException {
-        long ttl = this.getTimeToLive();
-        if (ttl > 0) {
-            if (System.currentTimeMillis() - this.getCreatedTime() > ttl) return true;
-        }
-        return false;
-    }
-
-    @Override
-    public boolean isInUse() throws IOException {
-        int offsetInIndexFile = AbstractMapTable.INDEX_ITEM_LENGTH * index + IMapEntry.INDEX_ITEM_STATUS;
-        byte status = this.indexMappedByteBuffer.get(offsetInIndexFile);
-        return (status & 1) != 0;
-    }
-
-    @Override
-    public int getIndex() {
-        return this.index;
-    }
-
-    @Override
-    public boolean isCompressed() throws IOException {
-        int offsetInIndexFile = AbstractMapTable.INDEX_ITEM_LENGTH * index + IMapEntry.INDEX_ITEM_STATUS;
-        byte status = this.indexMappedByteBuffer.get(offsetInIndexFile);
-        return (status & ( 1 << 2)) != 0;
-    }
 }
