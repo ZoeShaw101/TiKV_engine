@@ -35,6 +35,7 @@ public class BitCask {
     private static final String LOG_DIR = "/log";
     private static final String HINT_FILE_NAME = "/index_file";  //索引文件
     private static final String LOG_FILE_PATH = "/redoLog_file";
+
     private static final boolean DEBUG_ENABLE = false;
 
     private AtomicLong activeFileId = new AtomicLong(0);  //活跃文件
@@ -59,6 +60,7 @@ public class BitCask {
      * 3.检查redoLog
      */
     private void Init() throws EngineException {
+        logger.info("初始化数据库！");
         if (!FileHelper.fileExists(dbName)) {
             FileHelper.createDir(dbName);
         }

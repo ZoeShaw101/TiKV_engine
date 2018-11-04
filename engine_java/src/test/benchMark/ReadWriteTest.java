@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -20,7 +21,7 @@ public class ReadWriteTest {
     private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
 //    private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
     private final static int THREAD_NUM = 64;
-    private final static int ENTRY_NUM = 1000000;
+    private final static int ENTRY_NUM = 10000;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
     private static EngineRace engineRace = new EngineRace();
@@ -110,6 +111,7 @@ public class ReadWriteTest {
 
         long cost = System.currentTimeMillis() - start;
         logger.info("耗时:" + cost + "ms");
+
 
 //        System.out.println("=====================================");
 //        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost +
