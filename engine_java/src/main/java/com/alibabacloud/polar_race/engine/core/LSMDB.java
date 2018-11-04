@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * WiscKey :
+ * WiscKey : key\value分开存储
  * */
 
 
