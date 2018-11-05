@@ -7,7 +7,7 @@ public class DBConfig {
     public static final DBConfig LARGE = new DBConfig().setShardNumber((short)16);
     public static final DBConfig HUGE = new DBConfig().setShardNumber((short)32);
 
-    private short shardNumber = 4;
+    private short shardNumber = 1;
 
     private boolean compressionEnabled = false;
     private boolean localityEnabled = false;

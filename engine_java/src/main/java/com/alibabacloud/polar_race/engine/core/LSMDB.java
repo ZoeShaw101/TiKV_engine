@@ -30,11 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
-<<<<<<< HEAD
- * WiscKey : key\value分开存储
-=======
  * WiscKey : key / value 分离存储，因为LSM只要保证key有序就行了, value进行批量写入，减小SSD写放大
->>>>>>> feature/WiscKey
  * */
 
 
