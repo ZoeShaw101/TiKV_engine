@@ -175,7 +175,7 @@ public class Level0Merger extends Thread {
             }
 
             mapEntry = qe1.hashMapTable.getMapEntry(qe1.inMemIndex.getIndex());
-            byte[] value = mapEntry.getValue();
+            byte[] value = mapEntry.getValueAddress();
             sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value);
             if (flag) {
                 log.info("首次进行归并排序，写入数据到table");

@@ -163,7 +163,7 @@ public abstract class AbstractSortedMapTable extends AbstractMapTable {
         IMapEntry mapEntry = this.binarySearch(key);
         if (mapEntry == null) return result;
         else {
-            result.setValue(mapEntry.getValue());
+            result.setValue(mapEntry.getValueAddress());
             result.setLevel(this.getLevel());
             return result;
         }

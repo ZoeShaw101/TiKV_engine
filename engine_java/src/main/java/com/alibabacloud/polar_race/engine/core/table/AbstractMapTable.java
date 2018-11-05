@@ -43,7 +43,7 @@ public abstract class AbstractMapTable implements Closeable, Comparable<Abstract
     protected RandomAccessFile indexRaf;
     protected RandomAccessFile dataRaf;
     protected FileChannel metaChannel;
-    protected FileChannel dataChannel;  //数据文件的内存映射通道
+    protected FileChannel dataChannel;  //数据文件的内存映射通道，存储key/value address
     protected FileChannel indexChannel;  //索引文件的内存映射通道
 
     protected boolean usable = true;

@@ -21,8 +21,8 @@ public class MMFMapEntryImpl implements IMapEntry {
         return this.indexMappedByteBuffer.getInt(offsetInIndexFile);
     }
 
-    int getValueLength() {
-        int offsetInIndexFile = AbstractMapTable.INDEX_ITEM_LENGTH * index + IMapEntry.INDEX_ITEM_VALUE_LENGTH_OFFSET;
+    int getValueAddressLength() {
+        int offsetInIndexFile = AbstractMapTable.INDEX_ITEM_LENGTH * index + IMapEntry.INDEX_ITEM_VALUE_ADDRESS_LENGTH_OFFSET;
         return this.indexMappedByteBuffer.getInt(offsetInIndexFile);
     }
 
@@ -48,11 +48,11 @@ public class MMFMapEntryImpl implements IMapEntry {
     }
 
     @Override
-    public byte[] getValue() throws IOException {
+    public byte[] getValueAddress() throws IOException {
         int itemOffsetInDataFile = (int)this.getItemOffsetInDataFile();
         int keyLength = this.getKeyLength();
         itemOffsetInDataFile += keyLength;
-        int valueLength = this.getValueLength();
+        int valueLength = this.getValueAddressLength();
         byte[] result = new byte[valueLength];
         for(int i = 0; i <  valueLength; i++) {
             result[i] = this.dataMappedByteBuffer.get(i + itemOffsetInDataFile);

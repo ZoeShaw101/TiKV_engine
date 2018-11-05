@@ -39,8 +39,8 @@ public class FCMapEntryImpl implements IMapEntry {
         return hashCode;
     }
 
-    private int getValueLength() throws IOException {
-        int offsetInIndexFile = AbstractMapTable.INDEX_ITEM_LENGTH * index + IMapEntry.INDEX_ITEM_VALUE_LENGTH_OFFSET;
+    private int getValueAddressLength() throws IOException {
+        int offsetInIndexFile = AbstractMapTable.INDEX_ITEM_LENGTH * index + IMapEntry.INDEX_ITEM_VALUE_ADDRESS_LENGTH_OFFSET;
         return this.indexMappedByteBuffer.getInt(offsetInIndexFile);
     }
 
@@ -62,11 +62,11 @@ public class FCMapEntryImpl implements IMapEntry {
 
 
     @Override
-    public byte[] getValue() throws IOException {
+    public byte[] getValueAddress() throws IOException {
         if (value != null) return value;
         long itemOffsetInDataFile = this.getItemOffsetInDataFile();
         int keyLength = this.getKeyLength();
-        int valueLength = this.getValueLength();
+        int valueLength = this.getValueAddressLength();
         ByteBuffer valueBuf = ByteBuffer.allocate(valueLength);
         this.dataChannel.read(valueBuf, itemOffsetInDataFile + keyLength);
         value = valueBuf.array();

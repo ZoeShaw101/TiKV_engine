@@ -147,7 +147,7 @@ public class Level1Merger extends Thread {
             if (targetCacheQueue.size() >= CACHED_MAP_ENTRIES * DEFAULT_MERGE_WAYS) {
                 while(targetCacheQueue.size() > 0) {
                     mapEntry = targetCacheQueue.poll();
-                    byte[] value = mapEntry.getValue();
+                    byte[] value = mapEntry.getValueAddress();
                     sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value);
                 }
             }
@@ -165,7 +165,7 @@ public class Level1Merger extends Thread {
         // remaining cached entries
         while(targetCacheQueue.size() > 0) {
             mapEntry = targetCacheQueue.poll();
-            byte[] value = mapEntry.getValue();
+            byte[] value = mapEntry.getValueAddress();
             sortedMapTable.appendNew(mapEntry.getKey(), mapEntry.getKeyHash(), value);
         }
 
@@ -227,7 +227,7 @@ public class Level1Merger extends Thread {
                     IMapEntry mapEntry = sortedMapTable.getMapEntry(index);
                     // eager loading
                     mapEntry.getKey();
-                    mapEntry.getValue();
+                    mapEntry.getValueAddress();
                     queue.add(mapEntry);
                     index++;
                     count++;
