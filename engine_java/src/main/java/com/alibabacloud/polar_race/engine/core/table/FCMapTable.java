@@ -41,7 +41,7 @@ public class FCMapTable extends AbstractSortedMapTable {
             indexBuf.clear();
             indexBuf.putLong(IMapEntry.INDEX_ITEM_IN_DATA_FILE_OFFSET_OFFSET, toAppendDataFileOffset.get());
             indexBuf.putInt(IMapEntry.INDEX_ITEM_KEY_LENGTH_OFFSET, key.length);
-            indexBuf.putInt(IMapEntry.INDEX_ITEM_VALUE_LENGTH_OFFSET, value.length);
+            indexBuf.putInt(IMapEntry.INDEX_ITEM_VALUE_ADDRESS_LENGTH_OFFSET, value.length);
             indexBuf.putInt(IMapEntry.INDEX_ITEM_KEY_HASH_CODE_OFFSET, keyHash);
 
             int offsetInIndexFile = INDEX_ITEM_LENGTH * toAppendIndex.get();

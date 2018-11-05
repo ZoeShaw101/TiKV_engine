@@ -2,6 +2,7 @@ package com.alibabacloud.polar_race.engine.core.table;
 
 import com.alibabacloud.polar_race.engine.core.LSMDB;
 import com.alibabacloud.polar_race.engine.core.utils.MMFUtil;
+import com.alibabacloud.polar_race.engine.utils.BytesUtil;
 import com.google.common.base.Preconditions;
 
 import java.io.IOException;
@@ -75,7 +76,7 @@ public class HashMapTable extends AbstractMapTable {
         //恢复内存中的索引
         while(mapEntry.getKey().length != 0) {
             toAppendIndex.incrementAndGet();
-            long nextOffset = mapEntry.getItemOffsetInDataFile() + mapEntry.getKeyLength() + mapEntry.getValueLength();
+            long nextOffset = mapEntry.getItemOffsetInDataFile() + mapEntry.getKeyLength() + mapEntry.getValueAddressLength();
             toAppendDataFileOffset.set(nextOffset);
             InMemIndex inMemIndex = new InMemIndex(index);
             hashMap.put(new ByteArrayWrapper(mapEntry.getKey()), inMemIndex);
@@ -84,14 +85,7 @@ public class HashMapTable extends AbstractMapTable {
         }
     }
 
-    // for testing
-    public IMapEntry appendNew(byte[] key, byte[] value, long timeToLive, long createdTime) throws IOException {
-        Preconditions.checkArgument(key != null && key.length > 0, "Key is empty");
-        Preconditions.checkArgument(value != null && value.length > 0, "value is empty");
-        return this.appendNew(key, Arrays.hashCode(key), value, timeToLive, createdTime, false, false);
-    }
-
-    private IMapEntry appendNew(byte[] key, int keyHash, byte[] value, long timeToLive, long createdTime, boolean markDelete, boolean compressed) throws IOException {
+    private IMapEntry appendNew(byte[] key, int keyHash, byte[] value) throws IOException {
         ensureNotClosed();
 
         long tempToAppendIndex;
@@ -123,7 +117,7 @@ public class HashMapTable extends AbstractMapTable {
         ByteBuffer tempIndexBuf = ByteBuffer.allocate(INDEX_ITEM_LENGTH);
         tempIndexBuf.putLong(IMapEntry.INDEX_ITEM_IN_DATA_FILE_OFFSET_OFFSET, tempToAppendDataFileOffset);
         tempIndexBuf.putInt(IMapEntry.INDEX_ITEM_KEY_LENGTH_OFFSET, key.length);
-        tempIndexBuf.putInt(IMapEntry.INDEX_ITEM_VALUE_LENGTH_OFFSET, value.length);
+        tempIndexBuf.putInt(IMapEntry.INDEX_ITEM_VALUE_ADDRESS_LENGTH_OFFSET, value.length);
         tempIndexBuf.putInt(IMapEntry.INDEX_ITEM_KEY_HASH_CODE_OFFSET, keyHash);
 
         int offsetInIndexFile = INDEX_ITEM_LENGTH * (int)tempToAppendIndex;
@@ -165,7 +159,7 @@ public class HashMapTable extends AbstractMapTable {
         if (inMemIndex == null) return result;
 
         IMapEntry mapEntry = this.getMapEntry(inMemIndex.getIndex());
-        result.setValue(mapEntry.getValue());
+        result.setValue(mapEntry.getValueAddress());
         result.setLevel(this.getLevel());
         return result;
     }
@@ -178,14 +172,12 @@ public class HashMapTable extends AbstractMapTable {
         return this.immutable.get();
     }
 
-    public boolean put(byte[] key, byte[] value, long timeToLive, long createdTime, boolean isDelete) throws IOException {
+    public boolean put(byte[] key, long valueAddress) throws IOException {
         ensureNotClosed();
         Preconditions.checkArgument(key != null && key.length > 0, "Key is empty");
-        Preconditions.checkArgument(value != null && value.length > 0, "value is empty");
 
         IMapEntry mapEntry = null;
-
-        mapEntry = this.appendNew(key, value, timeToLive, createdTime);
+        mapEntry = this.appendNew(key, Arrays.hashCode(key), BytesUtil.LongToBytes(valueAddress));
 
         if (mapEntry == null) { // no space
             return false;
@@ -195,11 +187,6 @@ public class HashMapTable extends AbstractMapTable {
 
         return true;
     }
-
-    public void put(byte[] key, byte[] value, long timeToLive, long createdTime) throws IOException {
-        this.put(key, value, timeToLive, createdTime, false);
-    }
-
 
     public int getRealSize() {
         return this.hashMap.size();

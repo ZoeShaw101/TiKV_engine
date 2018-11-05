@@ -7,24 +7,30 @@ import com.alibabacloud.polar_race.engine.core.stats.FileStatsCollector;
 import com.alibabacloud.polar_race.engine.core.stats.Operations;
 import com.alibabacloud.polar_race.engine.core.table.*;
 import com.alibabacloud.polar_race.engine.core.utils.DateFormatter;
+import com.alibabacloud.polar_race.engine.core.utils.FileUtil;
+import com.alibabacloud.polar_race.engine.utils.BytesUtil;
+import com.alibabacloud.polar_race.engine.utils.FileHelper;
 import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * WiscKey :
+ * WiscKey : key / value 分离存储，因为LSM只要保证key有序就行了, value进行批量写入，减小SSD写放大
  * */
 
 
@@ -40,6 +46,10 @@ public class LSMDB {
 
     private static final String VALUE_LOG = "/value.log";
     private static final String VALUE_TMP_LOG = "/value.tmp.log";
+    private static final int VALUE_NUM_THRESHOLD = 10000;
+    static final int KEY_BYTE_SIZE = 8;  //4B
+    static final int VALUE_BYTE_SIZE = 4096;   //4KB
+    private static final int ENTRY_BYTE_SIZE = 4104;  //定长8B + 4KB
 
     private volatile HashMapTable[] activeInMemTables;
     private Object[] activeInMemTableCreationLocks;
@@ -53,10 +63,16 @@ public class LSMDB {
     private CountDownLatch[] countDownLatches;
     private FileStatsCollector fileStatsCollector;
 
+    private FileChannel tmpValueFileChannel;
+    private FileChannel valueFileChannel;
+
     private boolean closed = false;
     public static final boolean DEBUG_ENABLE = false;
 
     private AtomicInteger putCounter = new AtomicInteger(0);
+    private ReentrantLock logLock = new ReentrantLock();
+    public AtomicLong valueAddress = new AtomicLong(0);  //offset
+    public AtomicLong tmpValueAddress = new AtomicLong(0);  //offset
 
     public LSMDB(String dir) {
         this(dir, new DBConfig());
@@ -94,6 +110,22 @@ public class LSMDB {
         this.fileStatsCollector.start();
 
         this.startLevelMergers();
+
+        if (!FileHelper.fileExists(this.dir + VALUE_LOG)) {
+            try {
+                FileHelper.createFile(this.dir + VALUE_LOG);
+            } catch (Exception e) {
+                logger.error("创建value log文件失败" + e);
+            }
+        }
+        if (!FileHelper.fileExists(this.dir + VALUE_TMP_LOG)) {
+            try {
+                FileHelper.createFile(this.dir + VALUE_TMP_LOG);
+            } catch (Exception e) {
+                logger.error("创建tmp value log文件失败" + e);
+            }
+        }
+        this.checkValueLog();  //看是否有数据需要恢复
     }
 
     private void startLevelMergers() {
@@ -186,16 +218,6 @@ public class LSMDB {
         logger.info("加载磁盘的table信息完成！");
     }
 
-    public String getDir() {
-        return this.dir;
-    }
-
-    public DBConfig getConfig() { return this.config; }
-
-    public DBStats getStats() {
-        return this.stats;
-    }
-
 
     public void put(byte[] key, byte[] value) {
         this.put(key, value, AbstractMapTable.NO_TIMEOUT, System.currentTimeMillis(), false);
@@ -211,21 +233,95 @@ public class LSMDB {
         return (short) (keyHash % this.config.getShardNumber());
     }
 
+    /**
+     * 恢复数据
+     */
+    private void checkValueLog() {
+        logger.info("恢复tmp value log中的数据...");
+        String tmpValuePath = this.dir + VALUE_TMP_LOG;
+        String  valuePath = this.dir + VALUE_LOG;
+        try {
+            this.tmpValueFileChannel = new RandomAccessFile(tmpValuePath, "rw").getChannel();
+            this.valueFileChannel = new RandomAccessFile(valuePath, "rw").getChannel();
+            long size = this.tmpValueFileChannel.size();
+            this.tmpValueAddress.set(this.tmpValueFileChannel.size());
+            this.valueAddress.set(this.valueFileChannel.size());
+            if (size == 0) {
+                logger.info("没有数据要恢复！");
+                return;
+            }
+            ByteBuffer byteBuffer = ByteBuffer.allocate((int) size);
+            this.tmpValueFileChannel.read(byteBuffer, 0);
+            int recoveryNum = (int) size / ENTRY_BYTE_SIZE;
+            logger.info("共有" + recoveryNum + "个数据需要恢复");
+            byte[] buf = byteBuffer.array(), key = null, value = null;
+            byteBuffer.clear();
+            for (int i = 0, offset = 0; i < recoveryNum; i++, offset += ENTRY_BYTE_SIZE) {
+                key = new byte[KEY_BYTE_SIZE];
+                value = new byte[VALUE_BYTE_SIZE];
+                System.arraycopy(buf, offset, key, 0, KEY_BYTE_SIZE);
+                System.arraycopy(buf, offset + KEY_BYTE_SIZE, value, 0, VALUE_BYTE_SIZE);
+                this.put(key, value);
+                logger.info("恢复数据key=" + new String(key));
+            }
+        } catch (IOException e) {
+            logger.info("恢复数据出错！" + e);
+        }
+    }
+
+    private long putToValueLog(byte[] key, byte[] value) {
+        String tmpValuePath = this.dir + VALUE_TMP_LOG;
+        long curValueAddress = -1;
+        logLock.lock();
+        try {
+            int index = (int) this.tmpValueAddress.get() / ENTRY_BYTE_SIZE;
+            if (index  == VALUE_NUM_THRESHOLD) {
+                logger.info("tmp value log address 已经达到阈值，刷到value log");
+                //this.valueFileChannel.transferFrom(this.tmpValueFileChannel, this.valueAddress.get(), this.tmpValueFileChannel.size());
+                ByteBuffer sourceBuf = ByteBuffer.allocate((int) this.tmpValueAddress.get());
+                this.tmpValueFileChannel.read(sourceBuf, 0);
+                sourceBuf.flip();  //注意需将buffer由写模式转换成读模式
+                this.valueFileChannel.write(sourceBuf, this.valueAddress.get());
+                this.valueAddress.addAndGet(this.tmpValueAddress.get());
+                this.tmpValueAddress.set(0);
+                this.valueFileChannel.force(true);
+                FileHelper.clearFileContent(tmpValuePath);
+                sourceBuf.clear();
+                logger.info("value log offset=" + this.valueAddress.get());
+            }
+
+            curValueAddress = this.valueAddress.get() + this.tmpValueAddress.get();
+
+            this.tmpValueFileChannel.write(ByteBuffer.wrap(key), this.tmpValueAddress.get());
+            this.tmpValueFileChannel.write(ByteBuffer.wrap(value), this.tmpValueAddress.get() + key.length);
+            this.tmpValueAddress.addAndGet(ENTRY_BYTE_SIZE);
+            this.tmpValueFileChannel.force(true);
+        } catch (IOException e) {
+            logger.error("写入value tmp log出错！" + e);
+        } finally {
+            logLock.unlock();
+        }
+        return curValueAddress;
+    }
+
     private void put(byte[] key, byte[] value, long timeToLive, long createdTime, boolean isDelete) {
         Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
         Preconditions.checkArgument(value != null && value.length > 0, "value is empty");
         ensureNotClosed();
 
+        final long valueAddress = this.putToValueLog(key, value);
+        if (valueAddress == -1) logger.error("valueAddress值出错！");
+        //else logger.info("offset=" + valueAddress + ", value=" + new String(value));
 
         long start = System.nanoTime();
         String operation = isDelete ? Operations.DELETE : Operations.PUT;
         try {
             short shard = this.getShard(key);
-            boolean success = this.activeInMemTables[shard].put(key, value, timeToLive, createdTime, isDelete);
+            boolean success = this.activeInMemTables[shard].put(key, valueAddress);  //this.valueAddress.get()不同线程得到值不一致
 
             if (!success) { // overflow
                 synchronized(activeInMemTableCreationLocks[shard]) {
-                    success = this.activeInMemTables[shard].put(key, value, timeToLive, createdTime, isDelete); // other thread may have done the creation work
+                    success = this.activeInMemTables[shard].put(key, valueAddress); // synchronized对新生成table的对象加锁
                     if (!success) { // move to level queue 0
                         this.activeInMemTables[shard].markImmutable(true);
                         LevelQueue lq0 = this.levelQueueLists[shard].get(LEVEL0);
@@ -236,12 +332,11 @@ public class LSMDB {
                         } finally {
                             lq0.getWriteLock().unlock();
                         }
-
                         @SuppressWarnings("resource")
                         HashMapTable tempTable = new HashMapTable(dir, shard, LEVEL0, System.nanoTime());
                         tempTable.markUsable(true);
                         tempTable.markImmutable(false); //mutable
-                        tempTable.put(key, value, timeToLive, createdTime, isDelete);
+                        tempTable.put(key, valueAddress);
                         // switch on
                         this.activeInMemTables[shard] = tempTable;
                         tempTable = null;
@@ -266,9 +361,7 @@ public class LSMDB {
         }
     }
 
-    public byte[] get(byte[] key) {
-        Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
-        ensureNotClosed();
+    private byte[] getValueAddress(byte[] key) {
         long start = System.nanoTime();
         int reachedLevel = INMEM_LEVEL;
         try {
@@ -349,6 +442,59 @@ public class LSMDB {
         return null; // no luck
     }
 
+    /**
+     * get首先从table中拿到value address，然后还要根据address读一次value log，才最终拿到value值
+     */
+    public byte[] get(byte[] key) {
+        Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
+        ensureNotClosed();
+        byte[] valueAddress = this.getValueAddress(key);
+        if (valueAddress == null) return null;
+        byte[] value = null;
+        ByteBuffer byteBuffer = null;
+        try {
+            long offset = BytesUtil.BytesToLong(valueAddress);
+            byteBuffer = ByteBuffer.allocate(VALUE_BYTE_SIZE);
+            this.valueFileChannel.read(byteBuffer, offset + KEY_BYTE_SIZE);
+            value = byteBuffer.array();
+            //logger.info("查找：offset=" + offset + ", value=" + new String(value));  //address值是对的
+        } catch (IOException e) {
+            logger.error("读取value 出错！" + e);
+        } finally {
+            if (byteBuffer != null) byteBuffer.clear();
+        }
+        return value;
+    }
+
+    /**
+     * 最后关闭系统时还需将tmp value log里的数刷到value log里，清空tmp value log
+     */
+    private void flushTmpValueLog() {
+        logger.info("关闭系统中，持久化tmp value log中的数据...");
+        String tmpValuePath = this.dir + VALUE_TMP_LOG;
+        try {
+            long size = this.tmpValueFileChannel.size();
+            if (size == 0) return;
+            logger.info("before flush tmp, value log file size=" + this.valueFileChannel.size());
+            this.valueFileChannel.transferFrom(this.tmpValueFileChannel, this.valueFileChannel.size(), this.tmpValueFileChannel.size());
+            FileHelper.clearFileContent(tmpValuePath);
+            logger.info("after flush tmp, value log file size=" + this.valueFileChannel.size());
+        } catch (IOException e) {
+            logger.info("持久化tmp vlaue log数据出错！" + e);
+        } finally {
+            if (this.valueFileChannel != null) try {
+                this.valueFileChannel.close();
+            } catch (IOException e) {
+                logger.error("关闭value log出错！" + e);
+            }
+            if (this.tmpValueFileChannel != null) try {
+                this.tmpValueFileChannel.close();
+            } catch (IOException e) {
+                logger.error("关闭value log出错！" + e);
+            }
+        }
+    }
+
     public void close() throws IOException {
         logger.info("正在关闭存储引擎..." + "时间：" + DateFormatter.formatCurrentDate());
         if (closed) return;
@@ -384,6 +530,8 @@ public class LSMDB {
             }
         }
 
+        this.flushTmpValueLog();
+
         closed = true;
         logger.info("引擎正常关闭！" + "时间：" + DateFormatter.formatCurrentDate());
     }
@@ -393,6 +541,10 @@ public class LSMDB {
         if (closed) {
             throw new IllegalStateException("You can't work on a closed SDB.");
         }
+    }
+
+    public String getDir() {
+        return this.dir;
     }
 }
 
