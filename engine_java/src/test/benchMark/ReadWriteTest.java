@@ -31,7 +31,7 @@ public class ReadWriteTest {
     private static CountDownLatch countDownLatch = new CountDownLatch(THREAD_NUM);
 
     private final static String kvFilePath = "/Users/shaw/kv.data";
-    private static FileWriter fileWriter;
+    private static BufferedWriter bufferedWriter;
     private static BufferedReader bufferedReader;
 
     private static ReentrantLock lock = new ReentrantLock();
@@ -47,11 +47,12 @@ public class ReadWriteTest {
                         for (int j = 0; j < ENTRY_NUM; j++) {
                             byte[] key = TestUtil.randomString(8).getBytes();
                             byte[] value = TestUtil.randomString(4096).getBytes();
+//                            kvs.put(key, value);
+                            lock.lock();
+                            bufferedWriter.write(new String(key) + "-" + new String(value) + "\n");
+                            bufferedWriter.flush();
                             engineRace.write(key, value);
-                            kvs.put(key, value);
-//                            lock.lock();
-//                            fileWriter.write(new String(key) + "\n" + new String(value) + "\n");
-//                            lock.unlock();
+                            lock.unlock();
 //                            engineRace.write(TestUtil.randomString(8).getBytes(), TestUtil.randomString(4096).getBytes());
                         }
                     } catch (Exception e) {
@@ -84,7 +85,7 @@ public class ReadWriteTest {
                     cnt++;
                 } else {
                     rightCnt++;
-                    //logger.info("找到key=" + new String(key));
+                    logger.info("找到key=" + new String(key));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -94,12 +95,13 @@ public class ReadWriteTest {
         logger.info("读写测试：没找到或值错误的value的个数：" + cnt + ", 找到:rightCnt=" + rightCnt);
     }
 
-    private static void read() {
+    private static void read() throws IOException {
         int cnt = 0, rightCnt = 0;
-        for (int i = 0 ; i < THREAD_NUM * ENTRY_NUM; i++) {
+        String line;
+         while ( (line = bufferedReader.readLine()) != null){
             try {
-                String skey = bufferedReader.readLine();
-                String svalue = bufferedReader.readLine();
+                String skey = line.split("-")[0];
+                String svalue = line.split("-")[1];
                 if (skey == null || skey.length() == 0 || svalue.length() == 0) break;
                 byte[] key = skey.getBytes();
                 byte[] trueVal = svalue.getBytes();
@@ -125,34 +127,35 @@ public class ReadWriteTest {
 
     public static void main(String[] args) {
 
-        long start = System.currentTimeMillis();
+//        ///===============写================
+//        long start = System.currentTimeMillis();
+//        try {
+//            engineRace.open(DB_PATH);
+//            bufferedWriter = new BufferedWriter(new FileWriter(kvFilePath));
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        concurrentWrite();
+//        try {
+//            bufferedWriter.close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        engineRace.close();
+//
+//        long cost = System.currentTimeMillis() - start;
+//        logger.info("耗时:" + cost + "ms");
+
+        ///===============读================
         try {
             engineRace.open(DB_PATH);
-            fileWriter = new FileWriter(new File(kvFilePath));
+            bufferedReader = new BufferedReader(new FileReader(kvFilePath));
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        concurrentWrite();
         try {
-            fileWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        engineRace.close();
-
-        long cost = System.currentTimeMillis() - start;
-        logger.info("耗时:" + cost + "ms");
-
-
-        try {
-            engineRace.open(DB_PATH);
-            bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(kvFilePath)));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        readmMap();
-        try {
+            read();
             bufferedReader.close();
         } catch (IOException e) {
             e.printStackTrace();

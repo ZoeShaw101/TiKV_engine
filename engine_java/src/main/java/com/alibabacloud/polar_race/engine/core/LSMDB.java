@@ -25,6 +25,7 @@ import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -48,9 +49,9 @@ public class LSMDB {
     private static final String VALUE_LOG = "/value.log";
     private static final String VALUE_TMP_LOG = "/value.tmp.log";
     private static final int VALUE_NUM_THRESHOLD = 10000;
-    static final int KEY_BYTE_SIZE = 8;  //4B
-    static final int VALUE_BYTE_SIZE = 4096;   //4KB
-    private static final int ENTRY_BYTE_SIZE = 4104;  //定长8B + 4KB
+    static final int KEY_BYTE_SIZE = 8;  //8B
+    private static final int VALUE_BYTE_SIZE = 4096;   //4KB
+    static final int ENTRY_BYTE_SIZE = 4104;
 
     private volatile HashMapTable[] activeInMemTables;
     private Object[] activeInMemTableCreationLocks;
@@ -71,6 +72,7 @@ public class LSMDB {
     private ThreadLocalByteBuffer valueBuf = new ThreadLocalByteBuffer(ByteBuffer.allocate(VALUE_BYTE_SIZE));
 
     private boolean closed = false;
+    private AtomicBoolean isFirstGet = new AtomicBoolean(true);
     public static final boolean DEBUG_ENABLE = false;
 
     private AtomicInteger putCounter = new AtomicInteger(0);
@@ -111,7 +113,7 @@ public class LSMDB {
         }
 
         this.fileStatsCollector = new FileStatsCollector(stats, levelQueueLists);
-        this.fileStatsCollector.start();
+        //this.fileStatsCollector.start();
 
         this.startLevelMergers();
 
@@ -247,6 +249,7 @@ public class LSMDB {
         try {
             this.tmpValueFileChannel = new RandomAccessFile(tmpValuePath, "rw").getChannel();
             this.valueFileChannel = new RandomAccessFile(valuePath, "rw").getChannel();
+            this.valueAddress.set(this.valueFileChannel.size());
             long size = this.tmpValueFileChannel.size();
             if (size == 0) {
                 logger.info("没有数据要恢复！");
@@ -255,16 +258,14 @@ public class LSMDB {
             int recoveryNum = (int) size / ENTRY_BYTE_SIZE;
             logger.info("共有" + recoveryNum + "个数据需要恢复, value log size=" + this.valueFileChannel.size());
 
-            this.flushTmpValueLog(true);
-
-            this.tmpValueAddress.set(this.tmpValueFileChannel.size());
-            this.valueAddress.set(this.valueFileChannel.size());
-
-            /*
-            ByteBuffer byteBuffer = ByteBuffer.allocate((int) size);
-            this.tmpValueFileChannel.read(byteBuffer, 0);
-            byte[] buf = byteBuffer.array(), key = null, value = null;
-            byteBuffer.clear();
+            //this.flushTmpValueLog(true);
+            this.tmpValueLogBuf.clear();
+            this.tmpValueFileChannel.read(this.tmpValueLogBuf, 0);
+            final byte[] buf = new byte[this.tmpValueLogBuf.position()];
+            this.tmpValueLogBuf.flip();
+            this.tmpValueLogBuf.get(buf, 0, buf.length);
+            byte[] key, value;
+            FileHelper.clearFileContent(tmpValuePath);
             for (int i = 0, offset = 0; i < recoveryNum; i++, offset += ENTRY_BYTE_SIZE) {
                 key = new byte[KEY_BYTE_SIZE];
                 value = new byte[VALUE_BYTE_SIZE];
@@ -272,7 +273,7 @@ public class LSMDB {
                 System.arraycopy(buf, offset + KEY_BYTE_SIZE, value, 0, VALUE_BYTE_SIZE);
                 this.put(key, value);
                 logger.info("恢复数据key=" + new String(key));
-            }*/
+            }
         } catch (IOException e) {
             logger.info("恢复数据出错！" + e);
         }
@@ -298,9 +299,8 @@ public class LSMDB {
             }
 
             curValueAddress = this.valueAddress.get() + this.tmpValueAddress.get();
-
             this.tmpValueFileChannel.write(ByteBuffer.wrap(key), this.tmpValueAddress.get());
-            this.tmpValueFileChannel.write(ByteBuffer.wrap(value), this.tmpValueAddress.get() + key.length);
+            this.tmpValueFileChannel.write(ByteBuffer.wrap(value), this.tmpValueAddress.get() + KEY_BYTE_SIZE);
             this.tmpValueAddress.addAndGet(ENTRY_BYTE_SIZE);
             this.tmpValueFileChannel.force(true);
         } catch (IOException e) {
@@ -427,8 +427,15 @@ public class LSMDB {
     public byte[] get(byte[] key) {
         Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
         ensureNotClosed();
+        if (this.isFirstGet.get()) {
+            this.flushTmpValueLog(true);
+            this.isFirstGet.set(false);
+        }
         final byte[] valueAddress = this.getValueAddress(key);
-        if (valueAddress == null) return null;
+        if (valueAddress == null) {
+            logger.info("key=" + new String(key) + "没找到value地址！");
+            return null;
+        }
         byte[] value = null;
         try {
             final long offset = BytesUtil.BytesToLong(valueAddress);
@@ -438,6 +445,7 @@ public class LSMDB {
         } catch (IOException e) {
             logger.error("读取value 出错！" + e);
         }
+        if (value == null) logger.info("value值为null！, key=" + new String(key));
         return value;
     }
 
@@ -476,7 +484,7 @@ public class LSMDB {
         logger.info("正在关闭存储引擎..." + "时间：" + DateFormatter.formatCurrentDate());
         if (closed) return;
 
-        fileStatsCollector.setStop();
+        //fileStatsCollector.setStop();
 
         for(int i = 0; i < config.getShardNumber(); i++) {
             this.activeInMemTables[i].close();
