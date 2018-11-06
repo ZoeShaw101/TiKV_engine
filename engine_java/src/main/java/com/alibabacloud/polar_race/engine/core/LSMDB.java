@@ -66,8 +66,9 @@ public class LSMDB {
 
     private FileChannel tmpValueFileChannel;
     private FileChannel valueFileChannel;
-    private ByteBuffer tmpValueLogBuf = ByteBuffer.allocate(VALUE_NUM_THRESHOLD * ENTRY_BYTE_SIZE);
-    private ByteBuffer valueBuf = ByteBuffer.allocate(VALUE_BYTE_SIZE);
+
+    private ByteBuffer tmpValueLogBuf = ByteBuffer.allocateDirect(VALUE_NUM_THRESHOLD * ENTRY_BYTE_SIZE);
+    private ThreadLocalByteBuffer valueBuf = new ThreadLocalByteBuffer(ByteBuffer.allocate(VALUE_BYTE_SIZE));
 
     private boolean closed = false;
     public static final boolean DEBUG_ENABLE = false;
@@ -426,15 +427,14 @@ public class LSMDB {
     public byte[] get(byte[] key) {
         Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
         ensureNotClosed();
-        byte[] valueAddress = this.getValueAddress(key);
+        final byte[] valueAddress = this.getValueAddress(key);
         if (valueAddress == null) return null;
         byte[] value = null;
         try {
-            long offset = BytesUtil.BytesToLong(valueAddress);
-            this.valueBuf.clear();
-            this.valueFileChannel.read(this.valueBuf, offset + KEY_BYTE_SIZE);
-            value = this.valueBuf.array();
-            //logger.info("查找：offset=" + offset + ", value=" + new String(value));  //address值是对的
+            final long offset = BytesUtil.BytesToLong(valueAddress);
+            this.valueBuf.get().clear();
+            this.valueFileChannel.read(this.valueBuf.get(), offset + KEY_BYTE_SIZE);
+            value = this.valueBuf.get().array();
         } catch (IOException e) {
             logger.error("读取value 出错！" + e);
         }
