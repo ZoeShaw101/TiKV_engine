@@ -427,10 +427,7 @@ public class LSMDB {
     public byte[] get(byte[] key) {
         Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
         ensureNotClosed();
-        if (this.isFirstGet.get()) {
-            this.flushTmpValueLog(true);
-            this.isFirstGet.set(false);
-        }
+        this.flushTmpValueLog(true);
         final byte[] valueAddress = this.getValueAddress(key);
         if (valueAddress == null) {
             logger.info("key=" + new String(key) + "没找到value地址！");
@@ -453,11 +450,12 @@ public class LSMDB {
      * 最后关闭系统时还需将tmp value log里的数刷到value log里，清空tmp value log
      */
     private void  flushTmpValueLog(boolean isRecovery) {
-        logger.info("将tmp value log中的数据全部刷到vlaue log中...");
         String tmpValuePath = this.dir + VALUE_TMP_LOG;
+        this.logLock.lock();
         try {
             long size = this.tmpValueFileChannel.size();
             if (size == 0) return;
+            logger.info("将tmp value log中的数据全部刷到vlaue log中...");
             logger.info("before flush tmp, value log file size=" + this.valueFileChannel.size());
             this.valueFileChannel.transferFrom(this.tmpValueFileChannel, this.valueFileChannel.size(), this.tmpValueFileChannel.size());
             FileHelper.clearFileContent(tmpValuePath);
@@ -465,6 +463,7 @@ public class LSMDB {
         } catch (IOException e) {
             logger.info("持久化tmp vlaue log数据出错！" + e);
         } finally {
+            this.logLock.unlock();
             if (!isRecovery) {
                 if (this.valueFileChannel != null) try {
                     this.valueFileChannel.close();
