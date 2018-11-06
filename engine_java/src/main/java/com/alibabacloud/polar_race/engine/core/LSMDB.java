@@ -131,7 +131,19 @@ public class LSMDB {
                 logger.error("创建tmp value log文件失败" + e);
             }
         }
-        this.checkValueLog();  //是否有数据需要恢复
+
+        String tmpValuePath = this.dir + VALUE_TMP_LOG;
+        String  valuePath = this.dir + VALUE_LOG;
+        try {
+            this.tmpValueFileChannel = new RandomAccessFile(tmpValuePath, "rw").getChannel();
+            this.valueFileChannel = new RandomAccessFile(valuePath, "rw").getChannel();
+            this.valueAddress.set(this.valueFileChannel.size());
+            logger.info("当前value log size=" + this.valueFileChannel.size());
+        } catch (IOException e) {
+            logger.info("初始化File Channel出错！" + e);
+        }
+
+        //this.checkValueLog();  //是否有数据需要恢复
     }
 
     private void startLevelMergers() {
@@ -247,9 +259,6 @@ public class LSMDB {
         String tmpValuePath = this.dir + VALUE_TMP_LOG;
         String  valuePath = this.dir + VALUE_LOG;
         try {
-            this.tmpValueFileChannel = new RandomAccessFile(tmpValuePath, "rw").getChannel();
-            this.valueFileChannel = new RandomAccessFile(valuePath, "rw").getChannel();
-            this.valueAddress.set(this.valueFileChannel.size());
             long size = this.tmpValueFileChannel.size();
             if (size == 0) {
                 logger.info("没有数据要恢复！");
@@ -311,12 +320,29 @@ public class LSMDB {
         return curValueAddress;
     }
 
+    private long newPutToValueLog(byte[] key, byte[] value) {
+        long curValueAddress = -1;
+        this.logLock.lock();
+        try {
+            curValueAddress = this.valueAddress.get();
+            //this.valueFileChannel.write(ByteBuffer.wrap(key), this.valueAddress.get());
+            this.valueFileChannel.write(ByteBuffer.wrap(value), this.valueAddress.get());
+            this.valueAddress.addAndGet(VALUE_BYTE_SIZE);
+            this.valueFileChannel.force(true);
+        } catch (IOException e) {
+            logger.error("写入value tmp log出错！" + e);
+        } finally {
+            this.logLock.unlock();
+        }
+        return curValueAddress;
+    }
+
     private void put(byte[] key, byte[] value, long timeToLive, long createdTime, boolean isDelete) {
         Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
         Preconditions.checkArgument(value != null && value.length > 0, "value is empty");
         ensureNotClosed();
 
-        final long valueAddress = this.putToValueLog(key, value);
+        final long valueAddress = this.newPutToValueLog(key, value);
         if (valueAddress == -1) logger.error("valueAddress值出错！");
         //else logger.info("offset=" + valueAddress + ", value=" + new String(value));
 
@@ -437,7 +463,7 @@ public class LSMDB {
         try {
             final long offset = BytesUtil.BytesToLong(valueAddress);
             this.valueBuf.get().clear();
-            this.valueFileChannel.read(this.valueBuf.get(), offset + KEY_BYTE_SIZE);
+            this.valueFileChannel.read(this.valueBuf.get(), offset);
             value = this.valueBuf.get().array();
         } catch (IOException e) {
             logger.error("读取value 出错！" + e);

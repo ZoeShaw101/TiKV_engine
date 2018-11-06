@@ -48,6 +48,7 @@ public class ReadWriteTest {
                             byte[] key = TestUtil.randomString(8).getBytes();
                             byte[] value = TestUtil.randomString(4096).getBytes();
 //                            kvs.put(key, value);
+//                            engineRace.write(key, value);
                             lock.lock();
                             bufferedWriter.write(new String(key) + "-" + new String(value) + "\n");
                             bufferedWriter.flush();
@@ -98,7 +99,7 @@ public class ReadWriteTest {
     private static void read() throws IOException {
         int cnt = 0, rightCnt = 0;
         String line;
-         while ( (line = bufferedReader.readLine()) != null){
+         while ( (line = bufferedReader.readLine()) != null) {
             try {
                 String skey = line.split("-")[0];
                 String svalue = line.split("-")[1];
@@ -128,7 +129,7 @@ public class ReadWriteTest {
     public static void main(String[] args) {
 
 //        ///===============写================
-//        long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
 //        try {
 //            engineRace.open(DB_PATH);
 //            bufferedWriter = new BufferedWriter(new FileWriter(kvFilePath));
