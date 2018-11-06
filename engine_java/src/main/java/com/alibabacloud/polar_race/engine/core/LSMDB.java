@@ -67,6 +67,7 @@ public class LSMDB {
     private FileChannel tmpValueFileChannel;
     private FileChannel valueFileChannel;
     private ByteBuffer tmpValueLogBuf = ByteBuffer.allocate(VALUE_NUM_THRESHOLD * ENTRY_BYTE_SIZE);
+    private ByteBuffer valueBuf = ByteBuffer.allocate(VALUE_BYTE_SIZE);
 
     private boolean closed = false;
     public static final boolean DEBUG_ENABLE = false;
@@ -251,7 +252,7 @@ public class LSMDB {
                 return;
             }
             int recoveryNum = (int) size / ENTRY_BYTE_SIZE;
-            logger.info("共有" + recoveryNum + "个数据需要恢复");
+            logger.info("共有" + recoveryNum + "个数据需要恢复, value log size=" + this.valueFileChannel.size());
 
             this.flushTmpValueLog(true);
 
@@ -374,11 +375,7 @@ public class LSMDB {
             // check active hashmap table first
             Result result = this.activeInMemTables[shard].get(key);
             if (result.isFound()) {
-                if (!result.isDeleted() && !result.isExpired()) {
-                    return result.getValue();
-                } else {
-                    return null; // deleted or expired
-                }
+                return result.getValue();
             } else {
                 // check level0 hashmap tables
                 reachedLevel = LEVEL0;
@@ -388,24 +385,12 @@ public class LSMDB {
                     if (lq0 != null && lq0.size() > 0) {
                         for(AbstractMapTable table : lq0) {
                             result = table.get(key);
-                            if (result.isFound()) break;
+                            if (result.isFound()) return result.getValue();
                         }
                     }
                 } finally {
                     lq0.getReadLock().unlock();
                 }
-
-                if (result.isFound()) {
-                    if (!result.isDeleted() && !result.isExpired()) {
-                        if (result.getLevel() == LSMDB.LEVEL2 && this.config.isLocalityEnabled()) { // keep locality
-                            this.put(key, result.getValue(), result.getTimeToLive(), result.getCreatedTime(), false);
-                        }
-                        return result.getValue();
-                    } else {
-                        return null; // deleted or expired
-                    }
-                }
-
                 // check level 1-2 on disk sorted tables
                 searchLevel12: {
                     for(int level = 1; level <= MAX_LEVEL; level++) {
@@ -416,23 +401,12 @@ public class LSMDB {
                             if (lq.size() > 0) {
                                 for(AbstractMapTable table : lq) {
                                     result = table.get(key);
-                                    if (result.isFound()) break searchLevel12;
+                                    if (result.isFound()) return result.getValue();
                                 }
                             }
                         } finally {
                             lq.getReadLock().unlock();
                         }
-                    }
-                }
-
-                if (result.isFound()) {
-                    if (!result.isDeleted() && !result.isExpired()) {
-                        if (result.getLevel() == LSMDB.LEVEL2 && this.config.isLocalityEnabled()) { // keep locality
-                            this.put(key, result.getValue(), result.getTimeToLive(), result.getCreatedTime(), false);
-                        }
-                        return result.getValue();
-                    } else {
-                        return null; // deleted or expired
                     }
                 }
             }
@@ -443,7 +417,6 @@ public class LSMDB {
         } finally {
             stats.recordDBOperation(Operations.GET, reachedLevel, System.nanoTime() - start);
         }
-
         return null; // no luck
     }
 
@@ -456,17 +429,14 @@ public class LSMDB {
         byte[] valueAddress = this.getValueAddress(key);
         if (valueAddress == null) return null;
         byte[] value = null;
-        ByteBuffer byteBuffer = null;
         try {
             long offset = BytesUtil.BytesToLong(valueAddress);
-            byteBuffer = ByteBuffer.allocate(VALUE_BYTE_SIZE);
-            this.valueFileChannel.read(byteBuffer, offset + KEY_BYTE_SIZE);
-            value = byteBuffer.array();
+            this.valueBuf.clear();
+            this.valueFileChannel.read(this.valueBuf, offset + KEY_BYTE_SIZE);
+            value = this.valueBuf.array();
             //logger.info("查找：offset=" + offset + ", value=" + new String(value));  //address值是对的
         } catch (IOException e) {
             logger.error("读取value 出错！" + e);
-        } finally {
-            if (byteBuffer != null) byteBuffer.clear();
         }
         return value;
     }
@@ -474,7 +444,7 @@ public class LSMDB {
     /**
      * 最后关闭系统时还需将tmp value log里的数刷到value log里，清空tmp value log
      */
-    private void flushTmpValueLog(boolean isRecovery) {
+    private void  flushTmpValueLog(boolean isRecovery) {
         logger.info("将tmp value log中的数据全部刷到vlaue log中...");
         String tmpValuePath = this.dir + VALUE_TMP_LOG;
         try {
