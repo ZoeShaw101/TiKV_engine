@@ -65,6 +65,7 @@ public class LSMDB {
 
     private FileChannel tmpValueFileChannel;
     private FileChannel valueFileChannel;
+    private ByteBuffer tmpValueLogBuf = ByteBuffer.allocate(VALUE_NUM_THRESHOLD * ENTRY_BYTE_SIZE);
 
     private boolean closed = false;
     public static final boolean DEBUG_ENABLE = false;
@@ -277,16 +278,14 @@ public class LSMDB {
             int index = (int) this.tmpValueAddress.get() / ENTRY_BYTE_SIZE;
             if (index  == VALUE_NUM_THRESHOLD) {
                 logger.info("tmp value log address 已经达到阈值，刷到value log");
-                //this.valueFileChannel.transferFrom(this.tmpValueFileChannel, this.valueAddress.get(), this.tmpValueFileChannel.size());
-                ByteBuffer sourceBuf = ByteBuffer.allocate((int) this.tmpValueAddress.get());
-                this.tmpValueFileChannel.read(sourceBuf, 0);
-                sourceBuf.flip();  //注意需将buffer由写模式转换成读模式
-                this.valueFileChannel.write(sourceBuf, this.valueAddress.get());
+                this.tmpValueLogBuf.clear();
+                this.tmpValueFileChannel.read(this.tmpValueLogBuf, 0);
+                this.tmpValueLogBuf.flip();        //注意需将buffer由写模式转换成读模式
+                this.valueFileChannel.write(this.tmpValueLogBuf, this.valueAddress.get());
                 this.valueAddress.addAndGet(this.tmpValueAddress.get());
                 this.tmpValueAddress.set(0);
                 this.valueFileChannel.force(true);
                 FileHelper.clearFileContent(tmpValuePath);
-                sourceBuf.clear();
                 logger.info("value log offset=" + this.valueAddress.get());
             }
 

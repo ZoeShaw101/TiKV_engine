@@ -114,12 +114,6 @@ public class ReadWriteTest {
         long cost = System.currentTimeMillis() - start;
         logger.info("耗时:" + cost + "ms");
 
-
-//        System.out.println("=====================================");
-//        System.out.println("cost=" + cost + "ms, iops=" + (1000000000 * THREAD_NUM * ENTRY_NUM) / cost +
-//                ", 吞吐量=" + 1000000000 * byteNum.get() / cost );
-//        System.out.println("=====================================");
-//
 //
 //        try {
 //            engineRace.open(DB_PATH);
