@@ -13,6 +13,7 @@ import com.alibabacloud.polar_race.engine.utils.FileHelper;
 import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.nio.ch.DirectBuffer;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -126,7 +127,7 @@ public class LSMDB {
                 logger.error("创建tmp value log文件失败" + e);
             }
         }
-        this.checkValueLog();  //看是否有数据需要恢复
+        this.checkValueLog();  //是否有数据需要恢复
     }
 
     private void startLevelMergers() {
@@ -245,16 +246,21 @@ public class LSMDB {
             this.tmpValueFileChannel = new RandomAccessFile(tmpValuePath, "rw").getChannel();
             this.valueFileChannel = new RandomAccessFile(valuePath, "rw").getChannel();
             long size = this.tmpValueFileChannel.size();
-            this.tmpValueAddress.set(this.tmpValueFileChannel.size());
-            this.valueAddress.set(this.valueFileChannel.size());
             if (size == 0) {
                 logger.info("没有数据要恢复！");
                 return;
             }
-            ByteBuffer byteBuffer = ByteBuffer.allocate((int) size);
-            this.tmpValueFileChannel.read(byteBuffer, 0);
             int recoveryNum = (int) size / ENTRY_BYTE_SIZE;
             logger.info("共有" + recoveryNum + "个数据需要恢复");
+
+            this.flushTmpValueLog(true);
+
+            this.tmpValueAddress.set(this.tmpValueFileChannel.size());
+            this.valueAddress.set(this.valueFileChannel.size());
+
+            /*
+            ByteBuffer byteBuffer = ByteBuffer.allocate((int) size);
+            this.tmpValueFileChannel.read(byteBuffer, 0);
             byte[] buf = byteBuffer.array(), key = null, value = null;
             byteBuffer.clear();
             for (int i = 0, offset = 0; i < recoveryNum; i++, offset += ENTRY_BYTE_SIZE) {
@@ -264,7 +270,7 @@ public class LSMDB {
                 System.arraycopy(buf, offset + KEY_BYTE_SIZE, value, 0, VALUE_BYTE_SIZE);
                 this.put(key, value);
                 logger.info("恢复数据key=" + new String(key));
-            }
+            }*/
         } catch (IOException e) {
             logger.info("恢复数据出错！" + e);
         }
@@ -468,8 +474,8 @@ public class LSMDB {
     /**
      * 最后关闭系统时还需将tmp value log里的数刷到value log里，清空tmp value log
      */
-    private void flushTmpValueLog() {
-        logger.info("关闭系统中，持久化tmp value log中的数据...");
+    private void flushTmpValueLog(boolean isRecovery) {
+        logger.info("将tmp value log中的数据全部刷到vlaue log中...");
         String tmpValuePath = this.dir + VALUE_TMP_LOG;
         try {
             long size = this.tmpValueFileChannel.size();
@@ -481,15 +487,17 @@ public class LSMDB {
         } catch (IOException e) {
             logger.info("持久化tmp vlaue log数据出错！" + e);
         } finally {
-            if (this.valueFileChannel != null) try {
-                this.valueFileChannel.close();
-            } catch (IOException e) {
-                logger.error("关闭value log出错！" + e);
-            }
-            if (this.tmpValueFileChannel != null) try {
-                this.tmpValueFileChannel.close();
-            } catch (IOException e) {
-                logger.error("关闭value log出错！" + e);
+            if (!isRecovery) {
+                if (this.valueFileChannel != null) try {
+                    this.valueFileChannel.close();
+                } catch (IOException e) {
+                    logger.error("关闭value log出错！" + e);
+                }
+                if (this.tmpValueFileChannel != null) try {
+                    this.tmpValueFileChannel.close();
+                } catch (IOException e) {
+                    logger.error("关闭value log出错！" + e);
+                }
             }
         }
     }
@@ -529,7 +537,7 @@ public class LSMDB {
             }
         }
 
-        this.flushTmpValueLog();
+        this.flushTmpValueLog(false);
 
         closed = true;
         logger.info("引擎正常关闭！" + "时间：" + DateFormatter.formatCurrentDate());
