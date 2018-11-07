@@ -320,41 +320,34 @@ public class LSMDB {
         return curValueAddress;
     }
 
-    private long newPutToValueLog(byte[] key, byte[] value) {
-        long curValueAddress = -1;
-        this.logLock.lock();
-        try {
-            curValueAddress = this.valueAddress.get();
-            //this.valueFileChannel.write(ByteBuffer.wrap(key), this.valueAddress.get());
-            this.valueFileChannel.write(ByteBuffer.wrap(value), this.valueAddress.get());
-            this.valueAddress.addAndGet(VALUE_BYTE_SIZE);
-            this.valueFileChannel.force(true);
-        } catch (IOException e) {
-            logger.error("写入value tmp log出错！" + e);
-        } finally {
-            this.logLock.unlock();
-        }
-        return curValueAddress;
-    }
 
     private void put(byte[] key, byte[] value, long timeToLive, long createdTime, boolean isDelete) {
         Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
         Preconditions.checkArgument(value != null && value.length > 0, "value is empty");
         ensureNotClosed();
 
-        final long valueAddress = this.newPutToValueLog(key, value);
-        if (valueAddress == -1) logger.error("valueAddress值出错！");
-        //else logger.info("offset=" + valueAddress + ", value=" + new String(value));
+        long curValueAddress = -1;
+        this.logLock.lock();
+        try {
+            curValueAddress = this.valueAddress.get();
+            this.valueFileChannel.write(ByteBuffer.wrap(value), this.valueAddress.get());
+            this.valueAddress.addAndGet(VALUE_BYTE_SIZE);
+            this.valueFileChannel.force(true);
+        } catch (IOException e) {
+            logger.error("写入value log出错！" + e);
+        } finally {
+            this.logLock.unlock();
+        }
 
         long start = System.nanoTime();
         String operation = isDelete ? Operations.DELETE : Operations.PUT;
         try {
             short shard = this.getShard(key);
-            boolean success = this.activeInMemTables[shard].put(key, valueAddress);  //this.valueAddress.get()不同线程得到值不一致
+            boolean success = this.activeInMemTables[shard].put(key, curValueAddress);  //this.valueAddress.get()不同线程得到值不一致
 
             if (!success) { // overflow
                 synchronized(activeInMemTableCreationLocks[shard]) {
-                    success = this.activeInMemTables[shard].put(key, valueAddress); // synchronized对新生成table的对象加锁
+                    success = this.activeInMemTables[shard].put(key, curValueAddress); // synchronized对新生成table的对象加锁
                     if (!success) { // move to level queue 0
                         this.activeInMemTables[shard].markImmutable(true);
                         LevelQueue lq0 = this.levelQueueLists[shard].get(LEVEL0);
@@ -369,7 +362,7 @@ public class LSMDB {
                         HashMapTable tempTable = new HashMapTable(dir, shard, LEVEL0, System.nanoTime());
                         tempTable.markUsable(true);
                         tempTable.markImmutable(false); //mutable
-                        tempTable.put(key, valueAddress);
+                        tempTable.put(key, curValueAddress);
                         // switch on
                         this.activeInMemTables[shard] = tempTable;
                         tempTable = null;

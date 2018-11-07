@@ -26,8 +26,8 @@
       <file leaf-file-name="ReadWriteTest.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/test/benchMark/ReadWriteTest.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1899">
-              <caret line="149" column="0" lean-forward="true" selection-start-line="149" selection-start-column="0" selection-end-line="149" selection-end-column="0" />
+            <state relative-caret-position="165">
+              <caret line="25" column="46" lean-forward="false" selection-start-line="25" selection-start-column="46" selection-end-line="25" selection-end-column="46" />
               <folding />
             </state>
           </provider>
@@ -36,8 +36,8 @@
       <file leaf-file-name="LSMDB.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/LSMDB.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="403">
-              <caret line="465" column="66" lean-forward="false" selection-start-line="465" selection-start-column="66" selection-end-line="465" selection-end-column="66" />
+            <state relative-caret-position="315">
+              <caret line="50" column="56" lean-forward="false" selection-start-line="50" selection-start-column="56" selection-end-line="50" selection-end-column="56" />
               <folding>
                 <element signature="method#LSMDB#1;class#LSMDB#0" expanded="false" />
                 <element signature="method#startLevelMergers#0;class#LSMDB#0" expanded="false" />
@@ -45,8 +45,8 @@
                 <element signature="method#getShard#0;class#LSMDB#0" expanded="false" />
                 <element signature="method#checkValueLog#0;class#LSMDB#0" expanded="false" />
                 <element signature="method#putToValueLog#0;class#LSMDB#0" expanded="false" />
-                <element signature="method#put#2;class#LSMDB#0" expanded="false" />
                 <element signature="method#getValueAddress#0;class#LSMDB#0" expanded="false" />
+                <element signature="method#get#0;class#LSMDB#0" expanded="false" />
                 <element signature="method#flushTmpValueLog#0;class#LSMDB#0" expanded="false" />
                 <element signature="method#close#0;class#LSMDB#0" expanded="false" />
                 <element signature="method#ensureNotClosed#0;class#LSMDB#0" expanded="false" />
@@ -58,15 +58,14 @@
       <file leaf-file-name="HashMapTable.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/HashMapTable.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-81">
-              <caret line="30" column="17" lean-forward="false" selection-start-line="30" selection-start-column="17" selection-end-line="30" selection-end-column="17" />
+            <state relative-caret-position="614">
+              <caret line="113" column="9" lean-forward="true" selection-start-line="113" selection-start-column="9" selection-end-line="113" selection-end-column="9" />
               <folding>
                 <element signature="method#HashMapTable#0;class#HashMapTable#0" expanded="false" />
                 <element signature="method#HashMapTable#1;class#HashMapTable#0" expanded="false" />
                 <element signature="method#HashMapTable#2;class#HashMapTable#0" expanded="false" />
                 <element signature="method#getEntrySet#0;class#HashMapTable#0" expanded="false" />
                 <element signature="method#initToAppendIndexAndOffset#0;class#HashMapTable#0" expanded="false" />
-                <element signature="method#appendNew#0;class#HashMapTable#0" expanded="false" />
                 <element signature="method#get#0;class#HashMapTable#0" expanded="false" />
                 <element signature="method#put#0;class#HashMapTable#0" expanded="false" />
                 <element signature="method#close#0;class#HashMapTable#0" expanded="false" />
@@ -616,12 +615,12 @@
       <workItem from="1540453224234" duration="48971000" />
       <workItem from="1540784114321" duration="27818000" />
       <workItem from="1541221393867" duration="22396000" />
-      <workItem from="1541427616714" duration="33065000" />
+      <workItem from="1541427616714" duration="34498000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="416087000" />
+    <option name="totallyTimeSpent" value="417520000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-168" y="-1057" width="1634" height="1030" extended-state="0" />
@@ -636,7 +635,7 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.31786075" sideWeight="0.50196517" order="1" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32883435" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3292232" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16701245" sideWeight="0.5035318" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23340249" sideWeight="0.5035318" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.15145229" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -1173,15 +1172,14 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/table/HashMapTable.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-81">
-          <caret line="30" column="17" lean-forward="false" selection-start-line="30" selection-start-column="17" selection-end-line="30" selection-end-column="17" />
+        <state relative-caret-position="614">
+          <caret line="113" column="9" lean-forward="true" selection-start-line="113" selection-start-column="9" selection-end-line="113" selection-end-column="9" />
           <folding>
             <element signature="method#HashMapTable#0;class#HashMapTable#0" expanded="false" />
             <element signature="method#HashMapTable#1;class#HashMapTable#0" expanded="false" />
             <element signature="method#HashMapTable#2;class#HashMapTable#0" expanded="false" />
             <element signature="method#getEntrySet#0;class#HashMapTable#0" expanded="false" />
             <element signature="method#initToAppendIndexAndOffset#0;class#HashMapTable#0" expanded="false" />
-            <element signature="method#appendNew#0;class#HashMapTable#0" expanded="false" />
             <element signature="method#get#0;class#HashMapTable#0" expanded="false" />
             <element signature="method#put#0;class#HashMapTable#0" expanded="false" />
             <element signature="method#close#0;class#HashMapTable#0" expanded="false" />
@@ -1191,16 +1189,16 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/test/benchMark/ReadWriteTest.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1899">
-          <caret line="149" column="0" lean-forward="true" selection-start-line="149" selection-start-column="0" selection-end-line="149" selection-end-column="0" />
+        <state relative-caret-position="165">
+          <caret line="25" column="46" lean-forward="false" selection-start-line="25" selection-start-column="46" selection-end-line="25" selection-end-column="46" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/alibabacloud/polar_race/engine/core/LSMDB.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="403">
-          <caret line="465" column="66" lean-forward="false" selection-start-line="465" selection-start-column="66" selection-end-line="465" selection-end-column="66" />
+        <state relative-caret-position="315">
+          <caret line="50" column="56" lean-forward="false" selection-start-line="50" selection-start-column="56" selection-end-line="50" selection-end-column="56" />
           <folding>
             <element signature="method#LSMDB#1;class#LSMDB#0" expanded="false" />
             <element signature="method#startLevelMergers#0;class#LSMDB#0" expanded="false" />
@@ -1208,8 +1206,8 @@
             <element signature="method#getShard#0;class#LSMDB#0" expanded="false" />
             <element signature="method#checkValueLog#0;class#LSMDB#0" expanded="false" />
             <element signature="method#putToValueLog#0;class#LSMDB#0" expanded="false" />
-            <element signature="method#put#2;class#LSMDB#0" expanded="false" />
             <element signature="method#getValueAddress#0;class#LSMDB#0" expanded="false" />
+            <element signature="method#get#0;class#LSMDB#0" expanded="false" />
             <element signature="method#flushTmpValueLog#0;class#LSMDB#0" expanded="false" />
             <element signature="method#close#0;class#LSMDB#0" expanded="false" />
             <element signature="method#ensureNotClosed#0;class#LSMDB#0" expanded="false" />

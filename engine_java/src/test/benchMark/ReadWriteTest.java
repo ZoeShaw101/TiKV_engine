@@ -47,13 +47,13 @@ public class ReadWriteTest {
                         for (int j = 0; j < ENTRY_NUM; j++) {
                             byte[] key = TestUtil.randomString(8).getBytes();
                             byte[] value = TestUtil.randomString(4096).getBytes();
-//                            kvs.put(key, value);
-//                            engineRace.write(key, value);
-                            lock.lock();
-                            bufferedWriter.write(new String(key) + "-" + new String(value) + "\n");
-                            bufferedWriter.flush();
+                            kvs.put(key, value);
                             engineRace.write(key, value);
-                            lock.unlock();
+//                            lock.lock();
+//                            bufferedWriter.write(new String(key) + "-" + new String(value) + "\n");
+//                            bufferedWriter.flush();
+//                            engineRace.write(key, value);
+//                            lock.unlock();
 //                            engineRace.write(TestUtil.randomString(8).getBytes(), TestUtil.randomString(4096).getBytes());
                         }
                     } catch (Exception e) {
@@ -130,23 +130,23 @@ public class ReadWriteTest {
 
 //        ///===============写================
         long start = System.currentTimeMillis();
-//        try {
-//            engineRace.open(DB_PATH);
-//            bufferedWriter = new BufferedWriter(new FileWriter(kvFilePath));
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//
-//        concurrentWrite();
-//        try {
-//            bufferedWriter.close();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        engineRace.close();
-//
-//        long cost = System.currentTimeMillis() - start;
-//        logger.info("耗时:" + cost + "ms");
+        try {
+            engineRace.open(DB_PATH);
+            bufferedWriter = new BufferedWriter(new FileWriter(kvFilePath));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        concurrentWrite();
+        try {
+            bufferedWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        engineRace.close();
+
+        long cost = System.currentTimeMillis() - start;
+        logger.info("耗时:" + cost + "ms");
 
         ///===============读================
         try {
@@ -156,7 +156,7 @@ public class ReadWriteTest {
             e.printStackTrace();
         }
         try {
-            read();
+            readmMap();
             bufferedReader.close();
         } catch (IOException e) {
             e.printStackTrace();
