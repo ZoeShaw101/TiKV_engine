@@ -446,7 +446,6 @@ public class LSMDB {
     public byte[] get(byte[] key) {
         Preconditions.checkArgument(key != null && key.length > 0, "key is empty");
         ensureNotClosed();
-        this.flushTmpValueLog(true);
         final byte[] valueAddress = this.getValueAddress(key);
         if (valueAddress == null) {
             logger.info("key=" + new String(key) + "没找到value地址！");
@@ -455,6 +454,7 @@ public class LSMDB {
         byte[] value = null;
         try {
             final long offset = BytesUtil.BytesToLong(valueAddress);
+            logger.info("offset=" + offset);
             this.valueBuf.get().clear();
             this.valueFileChannel.read(this.valueBuf.get(), offset);
             value = this.valueBuf.get().array();
@@ -532,8 +532,6 @@ public class LSMDB {
 
             }
         }
-
-        this.flushTmpValueLog(false);
 
         closed = true;
         logger.info("引擎正常关闭！" + "时间：" + DateFormatter.formatCurrentDate());
