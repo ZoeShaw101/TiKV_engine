@@ -68,8 +68,7 @@ public class LSMDB {
     private FileChannel tmpValueFileChannel;
     private FileChannel valueFileChannel;
 
-    private ByteBuffer tmpValueLogBuf = ByteBuffer.allocateDirect(VALUE_NUM_THRESHOLD * ENTRY_BYTE_SIZE);
-    private ThreadLocalByteBuffer valueBuf = new ThreadLocalByteBuffer(ByteBuffer.allocate(VALUE_BYTE_SIZE));
+    //private ByteBuffer tmpValueLogBuf = ByteBuffer.allocateDirect(VALUE_NUM_THRESHOLD * ENTRY_BYTE_SIZE);
 
     private boolean closed = false;
     private AtomicBoolean isFirstGet = new AtomicBoolean(true);
@@ -254,7 +253,7 @@ public class LSMDB {
     /**
      * 恢复数据
      */
-    private void checkValueLog() {
+    /*private void checkValueLog() {
         logger.info("恢复tmp value log中的数据...");
         String tmpValuePath = this.dir + VALUE_TMP_LOG;
         String  valuePath = this.dir + VALUE_LOG;
@@ -318,7 +317,7 @@ public class LSMDB {
             logLock.unlock();
         }
         return curValueAddress;
-    }
+    }*/
 
 
     private void put(byte[] key, byte[] value, long timeToLive, long createdTime, boolean isDelete) {
