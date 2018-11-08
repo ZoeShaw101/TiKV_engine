@@ -454,15 +454,15 @@ public class LSMDB {
         byte[] value = null;
         try {
             final long offset = BytesUtil.BytesToLong(valueAddress);
-            logger.info("offset=" + offset);
-            this.valueBuf.get().clear();
-            this.valueFileChannel.read(this.valueBuf.get(), offset);
-            value = this.valueBuf.get().array();
+            ByteBuffer byteBuffer = ByteBuffer.allocate(VALUE_BYTE_SIZE);
+            this.valueFileChannel.read(byteBuffer, offset);
+            value = byteBuffer.array();
+            //logger.info("key=" + new String(key) + ", offset=" + offset + ", read value=" + new String(value));
+            return value;
         } catch (IOException e) {
             logger.error("读取value 出错！" + e);
         }
-        if (value == null) logger.info("value值为null！, key=" + new String(key));
-        return value;
+        return null;
     }
 
     /**

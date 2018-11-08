@@ -7,10 +7,13 @@ import com.alibabacloud.polar_race.engine.lsmtree.LSMTree;
 
 import org.apache.log4j.Logger;
 
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 public class EngineRace extends AbstractEngine {
 
 	private Logger logger = Logger.getLogger(EngineRace.class);
 	private LSMDB db;
+	private ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
 
 	@Override
 	public void open(String path) throws EngineException {

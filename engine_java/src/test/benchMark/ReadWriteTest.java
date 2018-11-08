@@ -2,6 +2,7 @@ package benchMark;
 
 import com.alibabacloud.polar_race.engine.common.EngineRace;
 import com.alibabacloud.polar_race.engine.lsmtree.LSMTree;
+import com.alibabacloud.polar_race.engine.utils.BytesUtil;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -12,6 +13,7 @@ import java.util.TreeMap;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 public class ReadWriteTest {
@@ -20,14 +22,15 @@ public class ReadWriteTest {
     private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
     //    private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
     private final static int THREAD_NUM = 8;
-    private final static int ENTRY_NUM = 100;
+    private final static int ENTRY_NUM = 10000;
 
-    private static Map<byte[], byte[]> kvs = new ConcurrentHashMap<>();
+    private static Map<byte[], byte[]> kvs = new ConcurrentSkipListMap<>((a, b) -> BytesUtil.KeyComparator(a, b));
     private static EngineRace engineRace = new EngineRace();
     private static ExecutorService pool = Executors.newFixedThreadPool(THREAD_NUM);
     private static CountDownLatch countDownLatch = new CountDownLatch(THREAD_NUM);
     private static CountDownLatch readLatch = new CountDownLatch(THREAD_NUM);
     private static CyclicBarrier cyclicBarrier = new CyclicBarrier(THREAD_NUM);
+    private static ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     private final static String kvFilePath = "/Users/shaw/kv.data";
     private static BufferedWriter bufferedWriter;
@@ -85,6 +88,9 @@ public class ReadWriteTest {
                                 //logger.error("没找到key=" + new String(key));
                                 nullCnt++;
                             } else if (!Arrays.equals(readVal, trueVal)) {
+                                logger.error("找到的value值错误！key=" + new String(key));
+                                logger.error("key=" + new String(key) + ", read val=" + new String(readVal));
+                                logger.error("key=" + new String(key) + ", true val=" + new String(trueVal));
                                 //logger.error("查找出的value值错误");
                                 misMatchCnt++;
                             } else {
@@ -96,7 +102,7 @@ public class ReadWriteTest {
                         e.printStackTrace();
                         logger.error(e);
                     } finally {
-                        logger.info("读写测试：值错误的value的个数：" + misMatchCnt + ", 没找到:rightCnt=" + nullCnt + ", 找到:rightCnt=" + rightCnt);
+                        logger.info("读写测试：值错误的value的个数：" + misMatchCnt + ", 没找到:nullCnt=" + nullCnt + ", 找到:rightCnt=" + rightCnt);
                         readLatch.countDown();
                     }
                 }
