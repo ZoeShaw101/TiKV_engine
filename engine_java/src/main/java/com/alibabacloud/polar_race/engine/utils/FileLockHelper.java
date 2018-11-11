@@ -16,7 +16,7 @@ public class FileLockHelper {
 
     private static FileLock fileLock = null;
 
-    public static void lock(RandomAccessFile file, boolean isShared) throws EngineException{
+    public static void lock(RandomAccessFile file, boolean isShared) throws EngineException {
         FileChannel channel = file.getChannel();
         fileLock = null;
         while (true) {

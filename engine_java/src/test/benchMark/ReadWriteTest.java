@@ -21,8 +21,8 @@ public class ReadWriteTest {
 
     private final static String DB_PATH = "/Users/shaw/shawdb";  //数据库目录
     //    private final static int THREAD_NUM = Runtime.getRuntime().availableProcessors();  //8
-    private final static int THREAD_NUM = 8;
-    private final static int ENTRY_NUM = 10000;
+    private final static int THREAD_NUM = 64;
+    private final static int ENTRY_NUM = 100;
 
     private static Map<byte[], byte[]> kvs = new ConcurrentSkipListMap<>((a, b) -> BytesUtil.KeyComparator(a, b));
     private static EngineRace engineRace = new EngineRace();
@@ -175,12 +175,12 @@ public class ReadWriteTest {
         //        } catch (Exception e) {
         //            e.printStackTrace();
         //        }
-        try {
-            concurrentReadMap();
-            //bufferedReader.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        engineRace.close();
+//        try {
+//            concurrentReadMap();
+//            //bufferedReader.close();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        engineRace.close();
     }
 }
