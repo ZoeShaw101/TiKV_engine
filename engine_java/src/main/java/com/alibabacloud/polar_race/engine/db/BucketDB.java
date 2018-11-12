@@ -306,33 +306,32 @@ public class BucketDB {
 
         RandomAccessFile dataFile = dataFiles[fileNum];
         ByteBuffer byteBuffer = byteBuffers[fileNum];
-        //synchronized (dataFile) {
-            try {
-                if (keyByte.length != KEY_LEN) {
-                    return;
-                }
+        try {
+            if (keyByte.length != KEY_LEN) {
+                return;
+            }
 
-                //########方案1
-                //持久化到数据文件
-                dataFile.write(value);
-                //文件号与数据偏移块号合并为一个int,高一个字节存文件名，低三个字节存文件中的偏移
-                //long vPos = dataFile.length() / VALUE_LEN - 1;
-                long vPos = dataFile.length() / VALUE_LEN;
-                int valuePos = (int) vPos;
-                int temValue = (fileNum << 24) | valuePos;
+            //########方案1
+            //持久化到数据文件
+            dataFile.write(value);
+            //文件号与数据偏移块号合并为一个int,高一个字节存文件名，低三个字节存文件中的偏移
+            //long vPos = dataFile.length() / VALUE_LEN - 1;
+            long vPos = dataFile.length() / VALUE_LEN;
+            int valuePos = (int) vPos;
+            int temValue = (fileNum << 24) | valuePos;
 
-                //按buffer写索引
-                byteBuffer.putLong(keyLong);
-                byteBuffer.putInt(temValue);
-                byteBuffer.flip();
-                long indexPos = indexAtomicLong.getAndIncrement();
-                indexRandomAccessFile.getChannel().write(byteBuffer, indexPos * INDEX_DATA_SIZE);
-                byteBuffer.clear();
+            //按buffer写索引
+            byteBuffer.putLong(keyLong);
+            byteBuffer.putInt(temValue);
+            byteBuffer.flip();
+            long indexPos = indexAtomicLong.getAndIncrement();
+            indexRandomAccessFile.getChannel().write(byteBuffer, indexPos * INDEX_DATA_SIZE);
+            byteBuffer.clear();
 
-                //放入内存
-                indexMapList.get(fileNum).put(keyLong, temValue);
+            //放入内存
+            indexMapList.get(fileNum).put(keyLong, temValue);
 
-                //########方案2
+            //########方案2
 //                int valuePos;
 //                int temValue = indexMapList.get(fileNum).getOrDefault(keyLong, -1);
 //                if (temValue > 0) {
@@ -356,10 +355,8 @@ public class BucketDB {
 //
 //                    //放入内存
 //                    indexMapList.get(fileNum).put(keyLong, temValue);
-//                }
 
-
-            } catch (Exception e) {
+        } catch (Exception e) {
                 writeErrorCount++;
                 if (writeErrorCount < 20) {
                     LOGGER.error(Thread.currentThread().getName() + " flush error!fileNum:" + fileNum, e);
