@@ -31,7 +31,7 @@ public class BucketDB {
     //value长度
     private static int VALUE_LEN = 4 * 1024;
     //文件偏移量，按条数进行偏移,长度为int，即偏移量文件只存4字节
-    private static int POS_SIZE = 4;
+    private static int POS_SIZE = 4;  //高1个字节存文件位置，低3个字节存在文件中的偏移
 
     private static int KEY_POS_SIZE = KEY_LEN + POS_SIZE;
 
@@ -432,18 +432,9 @@ public class BucketDB {
                         foreachBytes(keyByte) + ",valueFileNum:" + valueFileNum + ",pos:" + pos);
             }
 
-            synchronized (dataFiles[valueFileNum]) {
-                dataFiles[valueFileNum].seek(pos * VALUE_LEN);
-                dataFiles[valueFileNum].read(value);
-            }
+            dataFiles[valueFileNum].seek(pos * VALUE_LEN);
+            dataFiles[valueFileNum].read(value);
 
-//                Byte threadFileNum = threadFileMap.get(threadName);
-//            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(VALUE_LEN);
-//            FileChannel fileChannel = dataFiles[valueFileNum].getChannel();
-//            fileChannel.read(byteBuffer, pos * VALUE_LEN);
-//            byteBuffer.flip();
-//            byteBuffer.get(value);
-//                System.out.println("read key:" + Bytes.bytes2long(keyByte,0) + ",data file:"+valueFileNum+",value:" + Bytes.foreachBytes(value) + ",pos:" + pos);
 
         } catch (Exception e) {
             readErrorCount++;
